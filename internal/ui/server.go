@@ -26,8 +26,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/TwerkiTwerk/benchmeister-pc-check/internal/scan"
-	"github.com/TwerkiTwerk/benchmeister-pc-check/internal/upload"
+	"github.com/Dominic-Lutz85/benchmeister-pc-check/internal/scan"
+	"github.com/Dominic-Lutz85/benchmeister-pc-check/internal/upload"
 )
 
 //go:embed assets/preview.html.tmpl

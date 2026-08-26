@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwerkiTwerk/benchmeister-pc-check/internal/scan"
+	"github.com/Dominic-Lutz85/benchmeister-pc-check/internal/scan"
 )
 
 // Zugangsdaten der öffentlichen BenchMeister-Datenbank. Das ist KEIN

@@ -1,4 +1,4 @@
-module github.com/TwerkiTwerk/benchmeister-pc-check
+module github.com/Dominic-Lutz85/benchmeister-pc-check
 
 go 1.26.7
 
