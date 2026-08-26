@@ -1,0 +1,7 @@
+# Gebaute Programmdateien gehören nicht ins Repository, sondern als
+# Anhang an eine Version unter "Releases".
+*.exe
+
+# Ausgabedateien aus Testläufen
+out.txt
+err.txt

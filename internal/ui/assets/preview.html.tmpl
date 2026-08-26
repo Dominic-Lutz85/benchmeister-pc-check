@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BenchMeister PC-Check</title>
+<style>
+  :root {
+    --bg: #0d0a11; --panel: #16121c; --inset: #191420;
+    --fg: #f4f1f7; --muted: #b3aabd; --faint: #7d7488;
+    --line: #2b2434; --accent: #ec84f5; --ok: #4ade80; --warn: #fbbf24;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 20px 64px;
+    background: var(--bg); color: var(--fg);
+    font: 15px/1.6 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  .huelle { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 16px; margin: 32px 0 12px; }
+  .unter { color: var(--muted); margin: 0 0 8px; }
+  .karte {
+    border: 1px solid var(--line); background: var(--panel);
+    border-radius: 12px; padding: 16px;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  th { color: var(--faint); font-weight: 600; font-size: 13px;
+       text-transform: uppercase; letter-spacing: .04em; width: 42%; }
+  tr:last-child th, tr:last-child td { border-bottom: 0; }
+  .nichts { color: var(--faint); }
+  details { margin-top: 12px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+  pre {
+    background: var(--inset); border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px; overflow-x: auto; font-size: 13px; color: var(--muted);
+    margin-top: 10px;
+  }
+  .haken { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 16px; }
+  .haken:last-of-type { margin-bottom: 0; }
+  .haken input { margin-top: 3px; width: 17px; height: 17px; flex-shrink: 0; accent-color: var(--accent); }
+  .haken label { cursor: pointer; }
+  .haken .titel { display: block; font-weight: 600; }
+  .haken .text { display: block; color: var(--muted); font-size: 14px; margin-top: 2px; }
+  button {
+    font: inherit; font-weight: 600; padding: 11px 20px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--accent); color: #1b0a1f;
+    cursor: pointer; margin-top: 20px;
+  }
+  button:disabled { background: var(--inset); color: var(--faint); cursor: not-allowed; }
+  .fuss { color: var(--faint); font-size: 13px; margin-top: 28px; }
+  .meldung { margin-top: 14px; font-size: 14px; }
+  .meldung.fehler { color: var(--warn); }
+  .meldung.gut { color: var(--ok); }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="huelle">
+
+  <h1>BenchMeister PC-Check</h1>
+  <p class="unter">
+    Das haben wir in deinem Rechner gefunden. Bis hierhin ist noch nichts
+    ins Internet gegangen, alles unten steht nur auf deinem Bildschirm.
+  </p>
+
+  <div class="karte">
+    <table>
+      <tr><th>Prozessor</th><td>{{.Scan.CPUName}}</td></tr>
+      <tr><th>Kerne / Threads</th><td>{{.Scan.CPUCores}} / {{.Scan.CPUThreads}}</td></tr>
+      <tr><th>Grafikkarte</th><td>{{.Scan.GPUName}}</td></tr>
+      <tr><th>Grafikspeicher</th><td>
+        {{if .Scan.GPUVramGb}}{{.Scan.GPUVramGb}} GB{{else}}<span class="nichts">von Windows nicht zuverlässig gemeldet</span>{{end}}
+      </td></tr>
+      <tr><th>Arbeitsspeicher</th><td>
+        {{.Scan.RamTotalGb}} GB{{if .Scan.RamSpeedMhz}}, {{.Scan.RamSpeedMhz}} MHz{{end}}
+      </td></tr>
+      <tr><th>Laufwerk</th><td>{{.Scan.StorageType}}, {{.Scan.StorageCapacityGb}} GB</td></tr>
+      <tr><th>Auflösung</th><td>{{.Scan.ResolutionWidth}} × {{.Scan.ResolutionHeight}}</td></tr>
+      {{if .Scan.MainboardName}}
+      <tr><th>Mainboard</th><td>{{.Scan.MainboardName}} <span class="nichts">(nur hier, wird nicht übertragen)</span></td></tr>
+      {{end}}
+    </table>
+
+    <details>
+      <summary>Rohdaten ansehen: genau das würde übertragen</summary>
+      <pre id="rohdaten">{{.RohdatenJSON}}</pre>
+      <p class="fuss" style="margin-top:8px">
+        Nicht dabei und wird auch nie erhoben: Seriennummern, MAC-Adresse,
+        BIOS-Kennung, dein Windows-Benutzername, der Rechnername und die
+        Liste installierter Programme.
+      </p>
+    </details>
+  </div>
+
+  <h2>Möchtest du dein Ergebnis online sehen?</h2>
+
+  <div class="karte">
+    <div class="haken">
+      <input type="checkbox" id="anzeigen">
+      <label for="anzeigen">
+        <span class="titel">Ergebnis auf BenchMeister ansehen</span>
+        <span class="text">
+          Die Angaben oben werden hochgeladen, damit wir dir deinen Score,
+          den Vergleich mit starken Komplettsystemen und Aufrüst-Vorschläge
+          zeigen können. Du bekommst dafür einen persönlichen Link.
+        </span>
+      </label>
+    </div>
+
+    <div class="haken">
+      <input type="checkbox" id="marktforschung">
+      <label for="marktforschung">
+        <span class="titel">Zusätzlich: für Marktforschung freigeben (freiwillig)</span>
+        <span class="text">
+          Erlaubt uns, deine anonymen Angaben in eine Gesamtstatistik
+          einfließen zu lassen, die wir an Hersteller und Händler
+          weitergeben können. Damit finanzieren wir BenchMeister mit.
+          Völlig unabhängig vom ersten Häkchen: Wenn du nur dein Ergebnis
+          sehen willst, lass dieses hier einfach leer.
+        </span>
+      </label>
+    </div>
+
+    <button id="senden" disabled>Ergebnis ansehen</button>
+    <div id="meldung" class="meldung"></div>
+  </div>
+
+  <p class="fuss">
+    Ohne Klick auf den Knopf passiert nichts. Du kannst dieses Fenster
+    einfach schließen, dann wurde nie etwas übertragen. Das Programm
+    verändert nichts an deinem System, trägt sich nirgends ein und ist nach
+    dem Schließen wieder weg.
+  </p>
+
+</div>
+
+<script>
+  const anzeigen = document.getElementById("anzeigen");
+  const marktforschung = document.getElementById("marktforschung");
+  const senden = document.getElementById("senden");
+  const meldung = document.getElementById("meldung");
+  const rohdaten = document.getElementById("rohdaten");
+
+  // Der Rohdaten-Block muss ehrlich bleiben: Sobald sich das zweite
+  // Häkchen ändert, ändert sich auch der Wert, der wirklich gesendet wird.
+  // Deshalb wird die Anzeige mitgeführt statt einmal fest eingesetzt.
+  function rohdatenAktualisieren() {
+    try {
+      const daten = JSON.parse(rohdaten.textContent);
+      daten.p_consent_market_research = marktforschung.checked;
+      rohdaten.textContent = JSON.stringify(daten, null, 2);
+    } catch (e) { /* Anzeige ist Beiwerk, darf nie den Ablauf stören */ }
+  }
+
+  anzeigen.addEventListener("change", () => {
+    senden.disabled = !anzeigen.checked;
+  });
+  marktforschung.addEventListener("change", rohdatenAktualisieren);
+
+  senden.addEventListener("click", async () => {
+    senden.disabled = true;
+    meldung.className = "meldung";
+    meldung.textContent = "Wird übertragen ...";
+
+    try {
+      const antwort = await fetch("/consent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          anzeigen: anzeigen.checked,
+          marktforschung: marktforschung.checked,
+        }),
+      });
+      const ergebnis = await antwort.json();
+
+      if (!antwort.ok || ergebnis.fehler) {
+        throw new Error(ergebnis.fehler || "Übertragung fehlgeschlagen");
+      }
+
+      meldung.className = "meldung gut";
+      meldung.innerHTML =
+        'Fertig. Dein Ergebnis: <a href="' + ergebnis.url + '">' + ergebnis.url + "</a>";
+      window.location.href = ergebnis.url;
+    } catch (fehler) {
+      meldung.className = "meldung fehler";
+      meldung.textContent = "Hat nicht geklappt: " + fehler.message;
+      senden.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
