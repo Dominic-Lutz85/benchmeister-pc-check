@@ -61,6 +61,24 @@ Das Mainboard wird ausgelesen und lokal angezeigt, aber **nicht**
 Aus einem übertragenen Ergebnis lässt sich weder eine Person noch ein
 bestimmter Rechner wiedererkennen.
 
+### Zur IP-Adresse
+
+Damit die Tabelle oben nicht mehr verspricht, als sie halten kann: Das
+Programm liest die IP-Adresse nicht aus und sendet sie nicht mit. Aber
+jede Verbindung ins Internet trägt sie zwangsläufig, das gilt für jede
+Website und auch hier.
+
+Seit 1.0.3 verrechnet der Server von benchmeister.de sie kurz im
+Arbeitsspeicher zu einer Prüfsumme, um zu begrenzen, wie viele
+Ergebnisse in kurzer Zeit von derselben Stelle ankommen. Ohne diese
+Bremse könnte jemand die Statistik mit erfundenen Rechnern fluten, und
+eine Statistik, die jeder fälschen kann, ist wertlos. Die Adresse wird
+dabei nicht gespeichert, nicht protokolliert und landet in keiner
+Datenbank. Nach zehn Minuten ist auch die Prüfsumme weg.
+
+Details in [Abschnitt 3g der
+Datenschutzerklärung](https://benchmeister.de/datenschutz).
+
 ## Die zwei Einwilligungen
 
 Bewusst getrennt, beide standardmäßig leer:

@@ -20,16 +20,28 @@ import (
 	"github.com/Dominic-Lutz85/benchmeister-pc-check/internal/scan"
 )
 
-// Zugangsdaten der öffentlichen BenchMeister-Datenbank. Das ist KEIN
-// Geheimnis: Dieser Schlüssel steckt genauso im Browser-Code der Website
-// und ist bei Supabase ausdrücklich dafür gedacht, öffentlich zu sein. Der
-// Schutz kommt nicht aus Geheimhaltung, sondern aus den Regeln in der
-// Datenbank selbst: Mit diesem Schlüssel lässt sich ein Ergebnis anlegen
-// und genau ein Ergebnis über seinen Token abrufen, sonst nichts. Ein
-// Auslesen der Tabelle ist damit nicht möglich.
+// Die einzige Adresse, mit der dieses Programm spricht.
+//
+// SEIT 1.0.3 GEHT DAS NICHT MEHR AN DIE DATENBANK DIREKT. Vorher stand
+// hier der öffentliche Datenbankschlüssel, und das Programm schrieb
+// selbst in die Tabelle. Kein Geheimnisverrat, der Schlüssel ist bei
+// Supabase für die Öffentlichkeit gedacht. Aber: Er steht im Quelltext
+// dieses Programms, das öffentlich einsehbar ist. Wer ihn herauskopiert,
+// konnte damit beliebig viele erfundene Rechner in die Statistik
+// schreiben.
+//
+// Das wäre ausgerechnet bei diesen Daten der teuerste Schaden. Die
+// Hardware-Statistik soll später Herstellern etwas belegen, und ein
+// Bestand mit erfundenen Zeilen belegt nichts. Man sieht ihm hinterher
+// auch nicht an, welche Zeilen echt waren.
+//
+// Jetzt nimmt die Website das Ergebnis entgegen, prüft es und begrenzt,
+// wie viel in kurzer Zeit von derselben Stelle ankommt. Der Schlüssel
+// zum Schreiben liegt nur noch dort auf dem Server. Für die Person am
+// Rechner ändert sich nichts, außer dass Fehlermeldungen jetzt
+// verständlich sind statt roher Datenbankantworten.
 const (
-	supabaseURL      = "https://hdmyjymgpwwcphtmgkjp.supabase.co"
-	supabaseAnonKey  = "sb_publishable_ReU8DKrHUdgIq8gzDP2vSg_226RUak5"
+	uploadURL        = "https://www.benchmeister.de/api/scan"
 	ergebnisBasisURL = "https://benchmeister.de/pc-check-tool/ergebnis/"
 )
 
@@ -99,6 +111,14 @@ func baueAnfrage(s *scan.ScanResult, marktforschung bool) anfrage {
 // sichtbar bleibt, dass das eine bewusste Entscheidung der Nutzerin oder
 // des Nutzers ist und kein Nebeneffekt.
 func Senden(s *scan.ScanResult, marktforschung bool) (string, error) {
+	return senden(uploadURL, s, marktforschung)
+}
+
+// senden nimmt die Adresse als Parameter, damit der Test sie auf einen
+// eigenen Server umlenken kann. Sie bleibt trotzdem eine Konstante mit
+// genau einem Aufrufer, siehe Senden oben: Wer wissen will, wohin dieses
+// Programm sendet, findet weiterhin genau eine Adresse im Quelltext.
+func senden(adresse string, s *scan.ScanResult, marktforschung bool) (string, error) {
 	rumpf, err := json.Marshal(baueAnfrage(s, marktforschung))
 	if err != nil {
 		return "", err
@@ -106,13 +126,12 @@ func Senden(s *scan.ScanResult, marktforschung bool) (string, error) {
 
 	anfrageObjekt, err := http.NewRequest(
 		http.MethodPost,
-		supabaseURL+"/rest/v1/rpc/submit_scan_result",
+		adresse,
 		bytes.NewReader(rumpf),
 	)
 	if err != nil {
 		return "", err
 	}
-	anfrageObjekt.Header.Set("apikey", supabaseAnonKey)
 	anfrageObjekt.Header.Set("Content-Type", "application/json")
 
 	klient := &http.Client{Timeout: 20 * time.Second}
@@ -127,22 +146,30 @@ func Senden(s *scan.ScanResult, marktforschung bool) (string, error) {
 		return "", err
 	}
 
+	// Die Website antwortet immer mit einem JSON-Objekt: bei Erfolg mit
+	// "token", sonst mit "fehler" in verständlichem Deutsch.
+	var antwortDaten struct {
+		Token  string `json:"token"`
+		Fehler string `json:"fehler"`
+	}
+	_ = json.Unmarshal(inhalt, &antwortDaten)
+
 	if antwort.StatusCode < 200 || antwort.StatusCode >= 300 {
+		// Den Text der Website weiterreichen, wenn es einen gibt. Er sagt
+		// der Person, was zu tun ist ("bitte in ein paar Minuten noch
+		// einmal"), während eine nackte Statusnummer niemandem hilft.
+		if antwortDaten.Fehler != "" {
+			return "", fmt.Errorf("%s", antwortDaten.Fehler)
+		}
 		return "", fmt.Errorf(
 			"BenchMeister hat die Daten abgelehnt (Status %d): %s",
 			antwort.StatusCode, strings.TrimSpace(string(inhalt)),
 		)
 	}
 
-	// Die Funktion gibt den Token als JSON-Zeichenkette zurück,
-	// einschließlich Anführungszeichen.
-	var token string
-	if err := json.Unmarshal(inhalt, &token); err != nil {
-		return "", fmt.Errorf("unerwartete Antwort von BenchMeister: %s", string(inhalt))
-	}
-	if token == "" {
+	if antwortDaten.Token == "" {
 		return "", fmt.Errorf("BenchMeister hat keinen Ergebnis-Schlüssel zurückgegeben")
 	}
 
-	return ergebnisBasisURL + token, nil
+	return ergebnisBasisURL + antwortDaten.Token, nil
 }

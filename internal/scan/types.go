@@ -22,6 +22,18 @@ package scan
 // übertragenen Ergebnis lässt sich ablesen, dass irgendwer irgendwo eine
 // bestimmte Hardware-Kombination nutzt, mehr nicht.
 //
+// ZUR IP-ADRESSE, damit die Liste oben nicht mehr verspricht, als sie
+// halten kann: Dieses Programm liest sie nicht aus und sendet sie nicht
+// mit. Aber jede Verbindung ins Internet trägt sie zwangsläufig, das
+// gilt für jede Website und auch hier. Seit 1.0.3 verrechnet der Server
+// von benchmeister.de sie kurz im Arbeitsspeicher zu einer Prüfsumme,
+// um zu begrenzen, wie viele Ergebnisse in kurzer Zeit von derselben
+// Stelle ankommen. Ohne diese Bremse könnte jemand die Statistik mit
+// erfundenen Rechnern fluten. Die Adresse wird dabei nicht gespeichert,
+// nicht protokolliert und landet in keiner Datenbank, und nach zehn
+// Minuten ist auch die Prüfsumme weg. Siehe Abschnitt 3g der
+// Datenschutzerklärung auf benchmeister.de.
+//
 // Die Modellbezeichnungen werden absichtlich UNVERÄNDERT so übernommen,
 // wie Windows sie meldet (z.B. "AMD Ryzen 7 7800X3D 8-Core Processor").
 // Die Übersetzung auf den BenchMeister-Katalog passiert erst auf der
