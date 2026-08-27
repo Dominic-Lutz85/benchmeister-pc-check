@@ -26,9 +26,21 @@ type win32VideoController struct {
 	CurrentVerticalResolution   uint32
 }
 
+// PartNumber, DeviceLocator und BankLabel sind am 27.08.2026 dazugekommen,
+// fuer die Plausibilitaetspruefung (internal/pruefung). WICHTIG: Diese
+// Felder werden NUR lokal angezeigt und ausgewertet, sie werden NICHT
+// uebertragen. Die Upload-Struktur in upload/client.go kennt sie nicht.
+//
+// ConfiguredClockSpeed steht bewusst NICHT hier: Auf dem Testrechner
+// meldete es denselben Wert wie Speed, naemlich den Ist-Takt. Die
+// Sollgeschwindigkeit liefert Windows ueberhaupt nicht, sie steckt allein
+// in der Teilenummer.
 type win32PhysicalMemory struct {
-	Capacity uint64
-	Speed    uint32
+	Capacity      uint64
+	Speed         uint32
+	PartNumber    string
+	DeviceLocator string
+	BankLabel     string
 }
 
 type win32DiskDrive struct {
@@ -36,8 +48,10 @@ type win32DiskDrive struct {
 }
 
 type msftPhysicalDisk struct {
-	MediaType uint16
-	Size      uint64
+	MediaType    uint16
+	Size         uint64
+	BusType      uint16
+	FriendlyName string
 }
 
 type win32BaseBoard struct {
@@ -141,7 +155,7 @@ func grafikkarte(e *ScanResult) error {
 
 func arbeitsspeicher(e *ScanResult) {
 	var liste []win32PhysicalMemory
-	q := "select Capacity, Speed from Win32_PhysicalMemory"
+	q := "select Capacity, Speed, PartNumber, DeviceLocator, BankLabel from Win32_PhysicalMemory"
 	if err := wmi.Query(q, &liste); err != nil {
 		return
 	}
@@ -150,6 +164,13 @@ func arbeitsspeicher(e *ScanResult) {
 	var takt uint32
 	for _, m := range liste {
 		summe += m.Capacity
+		// Nur fuer die lokale Pruefung und Anzeige, wird nicht uebertragen.
+		e.Riegel = append(e.Riegel, RiegelInfo{
+			KapazitaetBytes: m.Capacity,
+			TaktMhz:         m.Speed,
+			Teilenummer:     strings.TrimSpace(m.PartNumber),
+			Kanal:           strings.TrimSpace(m.BankLabel),
+		})
 		// Bei gemischten Riegeln zählt der langsamste, denn genau mit dem
 		// läuft das ganze System.
 		if m.Speed > 0 && (takt == 0 || m.Speed < takt) {
@@ -170,8 +191,19 @@ func laufwerk(e *ScanResult) {
 	// MSFT_PhysicalDisk im Storage-Namensraum unterscheidet dagegen
 	// zuverlässig, und zwar ebenfalls ohne Administratorrechte.
 	var physisch []msftPhysicalDisk
-	q := "select MediaType, Size from MSFT_PhysicalDisk"
+	q := "select MediaType, Size, BusType, FriendlyName from MSFT_PhysicalDisk"
 	err := wmi.QueryNamespace(q, &physisch, `root\Microsoft\Windows\Storage`)
+
+	if err == nil {
+		for _, d := range physisch {
+			e.Laufwerke = append(e.Laufwerke, LaufwerkInfo{
+				Name:      strings.TrimSpace(d.FriendlyName),
+				MedienArt: d.MediaType,
+				BusArt:    d.BusType,
+				Bytes:     d.Size,
+			})
+		}
+	}
 
 	if err == nil && len(physisch) > 0 {
 		// Das größte Laufwerk ist in aller Regel das, auf dem Spiele und

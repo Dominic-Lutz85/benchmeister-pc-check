@@ -30,6 +30,18 @@
        text-transform: uppercase; letter-spacing: .04em; width: 42%; }
   tr:last-child th, tr:last-child td { border-bottom: 0; }
   .nichts { color: var(--faint); }
+  /* Befunde der Plausibilitaetspruefung. Der farbige Streifen links
+     statt einer Hintergrundfarbe: Ein voll eingefaerbter Kasten liest
+     sich wie eine Fehlermeldung, das hier sind aber Hinweise auf
+     ungenutztes Potenzial, keine Fehler des Rechners. */
+  .befund {
+    border-left: 3px solid var(--line); padding: 2px 0 2px 14px;
+    margin: 14px 0;
+  }
+  .befund.hinweis { border-left-color: var(--warn); }
+  .befund .titel { font-weight: 600; margin-bottom: 2px; }
+  .befund .rat { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  .alles-gut { color: var(--ok); }
   details { margin-top: 12px; }
   summary { cursor: pointer; color: var(--muted); font-size: 14px; }
   pre {
@@ -93,6 +105,37 @@
       </p>
     </details>
   </div>
+
+  {{/* Plausibilitaetspruefung. Steht bewusst VOR der Zustimmungsfrage:
+       Sie ist der Teil, der auch dann etwas bringt, wenn jemand nichts
+       uebertragen moechte. Sie beruht ausschliesslich auf Angaben, die
+       ohnehin schon ausgelesen wurden, und laeuft rein rechnerisch. */}}
+  <h2>Holst du alles heraus?</h2>
+  {{if .Befunde}}
+  <div class="karte">
+    <p class="unter" style="margin-bottom:4px">
+      Das hier kostet dich gerade Leistung, ohne dass du etwas kaufen musst.
+    </p>
+    {{range .Befunde}}
+    <div class="befund {{if eq .Schwere "hinweis"}}hinweis{{end}}">
+      <div class="titel">{{.Titel}}</div>
+      <div>{{.Feststellung}}</div>
+      <div class="rat">{{.Empfehlung}}</div>
+    </div>
+    {{end}}
+    <p class="fuss" style="margin-top:12px">
+      Diese Prüfung vergleicht nur, was Windows ohnehin meldet. Es wurde
+      nichts gemessen, nichts belastet und nichts am System verändert.
+    </p>
+  </div>
+  {{else}}
+  <div class="karte">
+    <p class="alles-gut" style="margin:0">
+      Nichts gefunden. Dein Arbeitsspeicher läuft mit seiner
+      Sollgeschwindigkeit und die Laufwerke hängen dort, wo sie hingehören.
+    </p>
+  </div>
+  {{end}}
 
   <h2>Möchtest du dein Ergebnis online sehen?</h2>
 

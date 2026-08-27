@@ -28,6 +28,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Dominic-Lutz85/benchmeister-pc-check/internal/pruefung"
 	"github.com/Dominic-Lutz85/benchmeister-pc-check/internal/scan"
 	"github.com/Dominic-Lutz85/benchmeister-pc-check/internal/upload"
 )
@@ -43,6 +44,9 @@ const wartezeit = 15 * time.Minute
 type vorlagenDaten struct {
 	Scan         *scan.ScanResult
 	RohdatenJSON string
+	// Befunde der Plausibilitaetspruefung. Rein lokal: Sie entstehen aus
+	// Angaben, die gar nicht uebertragen werden.
+	Befunde []pruefung.Befund
 }
 
 type zustimmung struct {
@@ -63,6 +67,11 @@ func Anzeigen(ergebnis *scan.ScanResult) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	// Die Pruefung laeuft rein rechnerisch auf bereits ausgelesenen
+	// Angaben: kein zusaetzlicher Zugriff aufs System, keine Last, keine
+	// neuen Rechte. Siehe internal/pruefung.
+	befunde := pruefung.Alle(riegelFuerPruefung(ergebnis), laufwerkeFuerPruefung(ergebnis))
 
 	vorlage, err := template.ParseFS(vorlagen, "assets/preview.html.tmpl")
 	if err != nil {
@@ -117,7 +126,11 @@ func Anzeigen(ergebnis *scan.ScanResult) (string, error) {
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_ = vorlage.Execute(w, vorlagenDaten{Scan: ergebnis, RohdatenJSON: rohdaten})
+		_ = vorlage.Execute(w, vorlagenDaten{
+			Scan:         ergebnis,
+			RohdatenJSON: rohdaten,
+			Befunde:      befunde,
+		})
 	})
 
 	mux.HandleFunc("/consent", func(w http.ResponseWriter, r *http.Request) {
@@ -200,4 +213,32 @@ func Anzeigen(ergebnis *scan.ScanResult) (string, error) {
 // die Adresse als Fenstertitel deuten würde.
 func imBrowserOeffnen(adresse string) {
 	_ = exec.Command("cmd", "/c", "start", "", adresse).Start()
+}
+
+// Die beiden Umwandler halten scan und pruefung voneinander unabhaengig:
+// Das Auslese-Paket muss nichts ueber die Pruefung wissen und umgekehrt.
+func riegelFuerPruefung(e *scan.ScanResult) []pruefung.Riegel {
+	aus := make([]pruefung.Riegel, 0, len(e.Riegel))
+	for _, r := range e.Riegel {
+		aus = append(aus, pruefung.Riegel{
+			KapazitaetBytes: r.KapazitaetBytes,
+			TaktMhz:         r.TaktMhz,
+			Teilenummer:     r.Teilenummer,
+			Kanal:           r.Kanal,
+		})
+	}
+	return aus
+}
+
+func laufwerkeFuerPruefung(e *scan.ScanResult) []pruefung.Laufwerk {
+	aus := make([]pruefung.Laufwerk, 0, len(e.Laufwerke))
+	for _, l := range e.Laufwerke {
+		aus = append(aus, pruefung.Laufwerk{
+			Name:      l.Name,
+			MedienArt: l.MedienArt,
+			BusArt:    l.BusArt,
+			Bytes:     l.Bytes,
+		})
+	}
+	return aus
 }

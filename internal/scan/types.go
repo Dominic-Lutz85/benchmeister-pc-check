@@ -55,4 +55,35 @@ type ScanResult struct {
 	// beim Einordnen der eigenen Hardware, ist für die Auswertung aber
 	// ohne Belang und gehört deshalb nicht in die Datenbank.
 	MainboardName string `json:"-"`
+
+	// Ab 27.08.2026 fuer die Plausibilitaetspruefung (internal/pruefung).
+	//
+	// BEIDE LISTEN WERDEN NICHT UEBERTRAGEN, erkennbar am `json:"-"` und
+	// daran, dass die Upload-Struktur in upload/client.go sie nicht kennt.
+	// Sie dienen ausschliesslich der lokalen Anzeige und Auswertung.
+	//
+	// Die Teilenummer eines Speicherriegels ist eine Modellbezeichnung
+	// wie "CMK32GX4M2E3200C16", keine Seriennummer. Sie sagt, welches
+	// Produkt verbaut ist, nicht welches Exemplar. Sie bleibt trotzdem
+	// lokal, weil sie fuer die Auswertung auf der Website nicht gebraucht
+	// wird und die Regel hier lautet: was nicht gebraucht wird, wird nicht
+	// uebertragen.
+	Riegel    []RiegelInfo   `json:"-"`
+	Laufwerke []LaufwerkInfo `json:"-"`
+}
+
+// RiegelInfo ist ein einzelner Speicherbaustein, nur zur lokalen Anzeige.
+type RiegelInfo struct {
+	KapazitaetBytes uint64
+	TaktMhz         uint32
+	Teilenummer     string
+	Kanal           string
+}
+
+// LaufwerkInfo ist ein Datentraeger, nur zur lokalen Anzeige.
+type LaufwerkInfo struct {
+	Name      string
+	MedienArt uint16
+	BusArt    uint16
+	Bytes     uint64
 }
