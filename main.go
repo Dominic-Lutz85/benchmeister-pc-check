@@ -23,8 +23,15 @@ import (
 	"github.com/Dominic-Lutz85/benchmeister-pc-check/internal/ui"
 )
 
+// Version dieses Programms. Ergaenzt am 27.08.2026: Vorher stand die
+// Versionsnummer nur im Git-Etikett und auf der Website, das Programm
+// selbst kannte sie nicht. Bei einer Rueckmeldung ("bei mir kommt Fehler
+// X") liess sich damit nicht feststellen, welcher Stand ueberhaupt
+// laeuft. Beim Veroeffentlichen einer neuen Fassung hier mitziehen.
+const version = "1.0.3"
+
 func main() {
-	fmt.Println("BenchMeister PC-Check")
+	fmt.Println("BenchMeister PC-Check", version)
 	fmt.Println("Lese aus, was in diesem Rechner steckt ...")
 
 	ergebnis, err := scan.Auslesen()
