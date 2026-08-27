@@ -82,13 +82,32 @@ func Anzeigen(ergebnis *scan.ScanResult) (string, error) {
 		return "", fmt.Errorf("Port des lokalen Dienstes nicht lesbar: %w", err)
 	}
 
+	// ergebnisURL und sendeFehler werden im Handler geschrieben (eigene
+	// Goroutine) und unten im Hauptablauf gelesen. Ohne Sperre ist das ein
+	// Wettlauf: Beim Erfolgsweg sorgt zwar das Schliessen des Kanals fuer
+	// eine saubere Reihenfolge, beim Fehlerweg passiert das aber gerade
+	// NICHT, dort laeuft das Programm in die Wartezeit und liest den Wert
+	// ohne jede Absprache. In der Praxis faellt das kaum auf, das Go-
+	// Speichermodell garantiert es aber nicht, und "go test -race" wuerde
+	// es anzeigen. Sicherheitsdurchsicht 27.08.2026.
 	var (
 		einmal      sync.Once
 		fertig      = make(chan struct{})
+		sperre      sync.Mutex
 		ergebnisURL string
 		sendeFehler error
 	)
 	beenden := func() { einmal.Do(func() { close(fertig) }) }
+	merken := func(url string, fehler error) {
+		sperre.Lock()
+		defer sperre.Unlock()
+		ergebnisURL, sendeFehler = url, fehler
+	}
+	lesen := func() (string, error) {
+		sperre.Lock()
+		defer sperre.Unlock()
+		return ergebnisURL, sendeFehler
+	}
 
 	mux := http.NewServeMux()
 
@@ -128,7 +147,7 @@ func Anzeigen(ergebnis *scan.ScanResult) (string, error) {
 
 		url, err := upload.Senden(ergebnis, z.Marktforschung)
 		if err != nil {
-			sendeFehler = err
+			merken("", err)
 			w.WriteHeader(http.StatusBadGateway)
 			_ = json.NewEncoder(w).Encode(antwort{Fehler: err.Error()})
 			// Nicht beenden: Vielleicht war nur kurz das Netz weg, dann
@@ -136,7 +155,7 @@ func Anzeigen(ergebnis *scan.ScanResult) (string, error) {
 			return
 		}
 
-		ergebnisURL = url
+		merken(url, nil)
 		_ = json.NewEncoder(w).Encode(antwort{URL: url})
 
 		// Kurz warten, damit der Browser die Antwort noch bekommt und
@@ -168,10 +187,11 @@ func Anzeigen(ergebnis *scan.ScanResult) (string, error) {
 	defer abbrechen()
 	_ = server.Shutdown(abschluss)
 
-	if ergebnisURL == "" && sendeFehler != nil {
-		return "", sendeFehler
+	url, fehler := lesen()
+	if url == "" && fehler != nil {
+		return "", fehler
 	}
-	return ergebnisURL, nil
+	return url, nil
 }
 
 // Öffnet eine Adresse im eingestellten Standardbrowser. "start" ist ein

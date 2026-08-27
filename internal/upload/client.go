@@ -28,8 +28,8 @@ import (
 // und genau ein Ergebnis über seinen Token abrufen, sonst nichts. Ein
 // Auslesen der Tabelle ist damit nicht möglich.
 const (
-	supabaseURL     = "https://hdmyjymgpwwcphtmgkjp.supabase.co"
-	supabaseAnonKey = "sb_publishable_ReU8DKrHUdgIq8gzDP2vSg_226RUak5"
+	supabaseURL      = "https://hdmyjymgpwwcphtmgkjp.supabase.co"
+	supabaseAnonKey  = "sb_publishable_ReU8DKrHUdgIq8gzDP2vSg_226RUak5"
 	ergebnisBasisURL = "https://benchmeister.de/pc-check-tool/ergebnis/"
 )
 

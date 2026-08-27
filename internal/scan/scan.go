@@ -20,8 +20,8 @@ type win32Processor struct {
 }
 
 type win32VideoController struct {
-	Name                      string
-	AdapterRAM                uint32
+	Name                        string
+	AdapterRAM                  uint32
 	CurrentHorizontalResolution uint32
 	CurrentVerticalResolution   uint32
 }

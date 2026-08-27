@@ -180,8 +180,17 @@
       }
 
       meldung.className = "meldung gut";
-      meldung.innerHTML =
-        'Fertig. Dein Ergebnis: <a href="' + ergebnis.url + '">' + ergebnis.url + "</a>";
+      // Kein innerHTML mit zusammengebautem HTML: ergebnis.url kommt aus
+      // der Antwort des Servers und damit mittelbar aus einer fremden
+      // Antwort. Hier stand vorher eine Zeichenketten-Verkettung in ein
+      // href-Attribut. Ausnutzbar waere das nur, wenn jemand die Antwort
+      // von BenchMeister kontrolliert, aber die saubere Variante kostet
+      // zwei Zeilen. Sicherheitsdurchsicht 27.08.2026.
+      meldung.textContent = "Fertig. Dein Ergebnis: ";
+      const verweis = document.createElement("a");
+      verweis.href = ergebnis.url;
+      verweis.textContent = ergebnis.url;
+      meldung.appendChild(verweis);
       window.location.href = ergebnis.url;
     } catch (fehler) {
       meldung.className = "meldung fehler";
