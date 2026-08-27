@@ -11,7 +11,9 @@
 // paar Zeilen Server-Code hier.
 //
 // Der Server hört ausschließlich auf 127.0.0.1, ist also von außen nicht
-// erreichbar, und beendet sich nach der einen Antwort selbst.
+// erreichbar, und beendet sich nach der einen Antwort selbst. Zusätzlich
+// nimmt er nur Anfragen an, die nachweislich von seiner eigenen Seite
+// kommen, siehe herkunft.go.
 package ui
 
 import (
@@ -74,6 +76,11 @@ func Anzeigen(ergebnis *scan.ScanResult) (string, error) {
 		return "", fmt.Errorf("lokaler Anzeigedienst konnte nicht starten: %w", err)
 	}
 	adresse := fmt.Sprintf("http://%s", lauscher.Addr().String())
+	// Fuer die Herkunftspruefung, siehe herkunft.go.
+	_, port, err := net.SplitHostPort(lauscher.Addr().String())
+	if err != nil {
+		return "", fmt.Errorf("Port des lokalen Dienstes nicht lesbar: %w", err)
+	}
 
 	var (
 		einmal      sync.Once
@@ -140,7 +147,11 @@ func Anzeigen(ergebnis *scan.ScanResult) (string, error) {
 		}()
 	})
 
-	server := &http.Server{Handler: mux}
+	// Ergaenzt am 27.08.2026 nach dem Sicherheitsaudit: Ohne diese Huelle
+	// koennte eine fremde Webseite per DNS-Rebinding mit dem lokalen
+	// Dienst sprechen, solange das Programm laeuft. Begruendung im Detail
+	// in herkunft.go.
+	server := &http.Server{Handler: nurEigeneHerkunft(port, mux)}
 	go func() { _ = server.Serve(lauscher) }()
 
 	imBrowserOeffnen(adresse)
