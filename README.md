@@ -7,6 +7,30 @@ Hinweise, wo sich Aufrüsten lohnt.
 
 Keine Installation. Eine Datei, Doppelklick, danach kann man sie löschen.
 
+**[⬇ Download der aktuellen Fassung](https://github.com/Dominic-Lutz85/benchmeister-pc-check/releases/latest/download/BenchMeister-PC-Check.exe)**
+(Windows 10/11, ca. 9 MB, portabel). Die SHA256-Prüfsumme steht bei der
+jeweiligen [Version](https://github.com/Dominic-Lutz85/benchmeister-pc-check/releases).
+
+![Die lokale Ergebnisseite: erkannte Hardware und die Plausibilitätsprüfung, bevor irgendetwas gesendet wurde](docs/screenshot.png)
+
+## English summary
+
+A small, portable Windows tool that reads out your PC's hardware via
+WMI (the same information Device Manager shows) and displays it locally
+in your browser. **No network connection is made before you explicitly
+consent.** It also runs a local plausibility check: RAM running below
+its rated speed (XMP/EXPO off), single-channel memory, mixed memory
+kits, games on an HDD, each with a one-line fix.
+
+Optionally, with your consent, the result is uploaded to
+[benchmeister.de](https://benchmeister.de) for a score and upgrade
+suggestions. What gets transmitted is shown verbatim beforehand, and
+never includes serial numbers, MAC addresses, usernames or any other
+identifier. The source of every network call is in
+[`internal/upload/client.go`](internal/upload/client.go), the only file
+in this project that talks to the internet. The rest of this README is
+in German, as is the website.
+
 ## Warum dieser Quelltext offen ist
 
 Dieses Programm bittet darum, eine fremde ausführbare Datei zu starten,
@@ -22,10 +46,16 @@ Repository. Offen ist genau das, was auf fremden Rechnern läuft.
 
 1. Fragt Windows über WMI nach der verbauten Hardware. Dieselbe Auskunft,
    die auch der Geräte-Manager anzeigt.
-2. Zeigt das Ergebnis lokal im Standardbrowser an, inklusive der Rohdaten,
+2. Prüft lokal auf verschenkte Leistung: Arbeitsspeicher unter seiner
+   Sollgeschwindigkeit (XMP/EXPO aus), einzelner Riegel statt
+   Doppelbestückung, gemischte Kits, Spiele auf einer HDD. Jeder Befund
+   mit einem Satz, was zu tun ist. Es wird nichts gemessen, nichts
+   belastet und nichts am System verändert, verglichen wird nur, was
+   Windows ohnehin meldet.
+3. Zeigt das Ergebnis lokal im Standardbrowser an, inklusive der Rohdaten,
    die übertragen würden. **Bis hierhin gibt es keinerlei Netzwerkverkehr.**
-3. Fragt zwei getrennte Einwilligungen ab, beide standardmäßig leer.
-4. Überträgt die Daten nur nach ausdrücklicher Zustimmung und öffnet die
+4. Fragt zwei getrennte Einwilligungen ab, beide standardmäßig leer.
+5. Überträgt die Daten nur nach ausdrücklicher Zustimmung und öffnet die
    Ergebnisseite.
 
 ## Was das Programm ausdrücklich nicht tut
@@ -127,6 +157,7 @@ mit dem Befehl oben in wenigen Sekunden selbst bauen.
 main.go                    Ablauf: auslesen, anzeigen, ggf. senden
 internal/scan/types.go     Abschließende Liste der erfassten Felder
 internal/scan/scan.go      WMI-Abfragen
+internal/pruefung/         Plausibilitätsprüfung (läuft komplett lokal)
 internal/ui/server.go      Lokale Anzeige (nur 127.0.0.1) und Zustimmung
 internal/ui/assets/        Die HTML-Seite, die im Browser erscheint
 internal/upload/client.go  Der einzige Netzwerkaufruf nach außen
