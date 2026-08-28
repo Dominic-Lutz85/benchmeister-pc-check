@@ -111,12 +111,18 @@
        uebertragen moechte. Sie beruht ausschliesslich auf Angaben, die
        ohnehin schon ausgelesen wurden, und laeuft rein rechnerisch. */}}
   <h2>Holst du alles heraus?</h2>
-  {{if .Befunde}}
+  {{/* Zwei getrennte Karten seit 28.08.2026. Vorher standen alle Befunde
+       unter der Zeile "ohne dass du etwas kaufen musst", darunter aber
+       auch Ratschlaege, die auf einen Neukauf hinauslaufen (SATA-SSD
+       gegen NVMe, Festplatte gegen SSD). Ein Moderator im PCGH-Forum hat
+       das zu Recht angestrichen. Eine Ueberschrift, die nicht stimmt,
+       beschaedigt alles darunter mit. */}}
+  {{if .Kostenlos}}
   <div class="karte">
     <p class="unter" style="margin-bottom:4px">
       Das hier kostet dich gerade Leistung, ohne dass du etwas kaufen musst.
     </p>
-    {{range .Befunde}}
+    {{range .Kostenlos}}
     <div class="befund {{if eq .Schwere "hinweis"}}hinweis{{end}}">
       <div class="titel">{{.Titel}}</div>
       <div>{{.Feststellung}}</div>
@@ -128,7 +134,22 @@
       nichts gemessen, nichts belastet und nichts am System verändert.
     </p>
   </div>
-  {{else}}
+  {{end}}
+  {{if .Kostenpflichtig}}
+  <div class="karte">
+    <p class="unter" style="margin-bottom:4px">
+      Das hier ginge schneller, kostet aber Geld. Muss also niemand machen.
+    </p>
+    {{range .Kostenpflichtig}}
+    <div class="befund">
+      <div class="titel">{{.Titel}}</div>
+      <div>{{.Feststellung}}</div>
+      <div class="rat">{{.Empfehlung}}</div>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+  {{if not .Befunde}}
   <div class="karte">
     <p class="alles-gut" style="margin:0">
       Nichts gefunden. Dein Arbeitsspeicher läuft mit seiner
@@ -239,6 +260,46 @@
       meldung.className = "meldung fehler";
       meldung.textContent = "Hat nicht geklappt: " + fehler.message;
       senden.disabled = false;
+    }
+  });
+
+  /* Anwesenheitsmeldung: ein Aufruf, der absichtlich nie beantwortet
+     wird. Solange diese Seite offen ist, steht die Verbindung. Wird der
+     Reiter geschlossen, bricht sie ab, und das Programm beendet sich.
+
+     Das ist der verlaessliche Weg. Das sendBeacon weiter unten kam beim
+     harten Schliessen eines Reiters nicht immer an, und ein Herzschlag
+     per Zeitgeber wuerde in unsichtbaren Reitern gedrosselt. Die
+     Begruendung im Langen steht in server.go bei /anwesend. */
+  fetch("/anwesend").catch(function () {});
+
+  /* Zusaetzlich, weil es schneller ist, wenn es denn ankommt:
+     dem Programm Bescheid sagen, wenn diese Seite zugemacht wird.
+     Ohne das lief die exe nach dem Schliessen des Fensters noch bis zu
+     15 Minuten im Hintergrund weiter. Aus Sicht der Benutzerin ist diese
+     Seite das Programm, also muss das Schliessen es auch beenden.
+     Gefunden im PCGH-Forum am 28.08.2026.
+
+     pagehide statt unload: unload verhindert, dass der Browser die Seite
+     in seinen Vor-und-Zurueck-Speicher legt, und wird in mobilen
+     Browsern oft gar nicht ausgeloest.
+
+     sendBeacon statt fetch: Es ueberlebt das Schliessen des Fensters,
+     ein normaler Aufruf wuerde dabei abgebrochen. */
+  window.addEventListener("pagehide", function () {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon("/verlassen");
+      return;
+    }
+    fetch("/verlassen", { method: "POST", keepalive: true }).catch(function () {});
+  });
+
+  /* Kommt die Seite ueber den Zurueck-Knopf aus dem Vor-und-Zurueck-
+     Speicher, laedt der Browser sie nicht neu. Dann fehlt der Aufruf,
+     der den Abschied von eben abblasen wuerde, also hier nachholen. */
+  window.addEventListener("pageshow", function (ereignis) {
+    if (ereignis.persisted) {
+      fetch("/bleibt").catch(function () {});
     }
   });
 </script>

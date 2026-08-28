@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/Dominic-Lutz85/benchmeister-pc-check/internal/pruefung"
 )
 
 // Diese Tests halten die Abwehr gegen DNS-Rebinding fest, siehe die
@@ -120,5 +122,42 @@ func TestNurEigeneHerkunftSchuetztAuchDieStartseite(t *testing.T) {
 		if schreiber.Code != http.StatusForbidden {
 			t.Errorf("%s: Code %d, erwartet %d", pfad, schreiber.Code, http.StatusForbidden)
 		}
+	}
+}
+
+// Waechter fuer die Trennung der beiden Anzeigebloecke. Ueber dem einen
+// steht "ohne dass du etwas kaufen musst", darunter darf also nichts
+// landen, was auf einen Neukauf hinauslaeuft. Ein PCGH-Moderator hat
+// genau diesen Widerspruch am 28.08.2026 gefunden.
+func TestNachKostenTrenntZukaufAb(t *testing.T) {
+	alle := []pruefung.Befund{
+		{Schwere: pruefung.Hinweis, Titel: "Speicherprofil aus"},
+		{Schwere: pruefung.Zukauf, Titel: "Magnetfestplatte verbaut"},
+		{Schwere: pruefung.Anmerkung, Titel: "Riegel gemischt"},
+		{Schwere: pruefung.Zukauf, Titel: "SSD haengt am SATA-Anschluss"},
+	}
+	kostenlos, kostenpflichtig := nachKosten(alle)
+
+	if len(kostenlos) != 2 || len(kostenpflichtig) != 2 {
+		t.Fatalf("erwartet 2 und 2, kam %d und %d", len(kostenlos), len(kostenpflichtig))
+	}
+	for _, b := range kostenlos {
+		if b.Schwere == pruefung.Zukauf {
+			t.Errorf("%q kostet Geld und darf nicht unter der Gratis-Ueberschrift stehen", b.Titel)
+		}
+	}
+	for _, b := range kostenpflichtig {
+		if b.Schwere != pruefung.Zukauf {
+			t.Errorf("%q gehoert nicht in den Zukauf-Block", b.Titel)
+		}
+	}
+}
+
+// Ohne Befunde duerfen beide Bloecke leer bleiben, damit die Seite nicht
+// zwei leere Karten zeigt.
+func TestNachKostenOhneBefunde(t *testing.T) {
+	kostenlos, kostenpflichtig := nachKosten(nil)
+	if len(kostenlos) != 0 || len(kostenpflichtig) != 0 {
+		t.Error("ohne Befunde muessen beide Listen leer sein")
 	}
 }

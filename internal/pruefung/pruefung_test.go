@@ -1,6 +1,9 @@
 package pruefung
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // Die Teilenummern hier sind echt und stammen vom Entwicklungsrechner
 // (ausgelesen am 27.08.2026), nicht ausgedacht. Genau an ihnen hat sich
@@ -49,7 +52,7 @@ func TestSpeicherErkenntAbgeschaltetesProfil(t *testing.T) {
 
 	var profil, gemischt bool
 	for _, b := range befunde {
-		if b.Titel == "Arbeitsspeicher läuft unter seiner Sollgeschwindigkeit" {
+		if b.Titel == "Arbeitsspeicher läuft womöglich unter seiner Sollgeschwindigkeit" {
 			profil = true
 			if b.Schwere != Hinweis {
 				t.Error("abgeschaltetes Speicherprofil muss ein Hinweis sein")
@@ -115,8 +118,105 @@ func TestLaufwerke(t *testing.T) {
 	}
 	// USB-Geraete und NVMe-SSDs duerfen nichts ausloesen.
 	for _, b := range befunde {
-		if b.Titel != "SSD am SATA-Anschluss" && b.Titel != "Magnetfestplatte verbaut" {
+		if b.Titel != "SSD hängt am SATA-Anschluss" && b.Titel != "Magnetfestplatte verbaut" {
 			t.Errorf("unerwarteter Befund: %s", b.Titel)
 		}
+	}
+}
+
+// Waechter fuer die Ueberschrift der Ergebnisseite. Dort steht ueber dem
+// einen Block "ohne dass du etwas kaufen musst". Jeder Laufwerks-Befund
+// laeuft aber auf einen Neukauf hinaus, keiner davon darf also in diesem
+// Block landen. Genau das war der Fehler, den ein PCGH-Moderator am
+// 28.08.2026 angestrichen hat.
+func TestLaufwerksbefundeSindZukauf(t *testing.T) {
+	laufwerke := []Laufwerk{
+		{Name: "Crucial BX500", MedienArt: medienSSD, BusArt: busSATA},
+		{Name: "WDC WD10EZEX", MedienArt: medienHDD, BusArt: busSATA},
+	}
+	for _, b := range Laufwerke(laufwerke) {
+		if b.Schwere != Zukauf {
+			t.Errorf("%q muss als Zukauf gelten, ist aber %q", b.Titel, b.Schwere)
+		}
+	}
+}
+
+// DER FALL, DER DAS GANZE AUSGELOEST HAT.
+//
+// Ein Moderator im PCGH-Forum meldete am 28.08.2026: Sein Speicher lief
+// nachweislich mit 5600 MT/s, das Programm behauptete 4800 und riet ihm,
+// das Speicherprofil einzuschalten, das laengst an war. Windows meldete
+// in Speed den JEDEC-Grundtakt fuer DDR5 statt des Ist-Werts.
+//
+// Widersprechen sich die beiden Taktfelder, darf kein Takt-Befund mehr
+// herauskommen. Die Teilenummer ist bewusst erfunden und als solche
+// erkennbar: Seine echte kennen wir nicht, und eine geratene echte waere
+// genau die Sorte Halbwissen, gegen die dieses Projekt antritt.
+func TestWidersprechendeTaktfelderErzeugenKeinenFehlalarm(t *testing.T) {
+	riegel := []Riegel{
+		{KapazitaetBytes: 17179869184, TaktMhz: 4800, TaktMhzZweiter: 5600,
+			Teilenummer: "TESTKIT5200C40", Kanal: "A"},
+		{KapazitaetBytes: 17179869184, TaktMhz: 4800, TaktMhzZweiter: 5600,
+			Teilenummer: "TESTKIT5200C40", Kanal: "B"},
+	}
+	befunde := Speicher(riegel)
+
+	for _, b := range befunde {
+		if b.Schwere == Hinweis {
+			t.Errorf("bei widerspruechlichen Taktangaben darf nichts behauptet werden, kam: %q", b.Titel)
+		}
+	}
+	if len(befunde) != 1 || befunde[0].Titel != "Zum Speichertakt sage ich lieber nichts" {
+		t.Fatalf("erwartet: genau die ehrliche Anmerkung, kam: %+v", befunde)
+	}
+	if !strings.Contains(befunde[0].Feststellung, "4800") ||
+		!strings.Contains(befunde[0].Feststellung, "5600") {
+		t.Error("die Anmerkung muss beide gemeldeten Werte nennen, sonst kann niemand nachvollziehen, warum wir schweigen")
+	}
+}
+
+// Die uebrigen Speicherpruefungen haengen nicht am Takt und muessen auch
+// dann laufen, wenn der Takt unklar ist. Sonst haette der Fix von oben
+// nebenbei den Einkanal-Befund abgeschaltet.
+func TestUnklarerTaktStopptDieUebrigenPruefungenNicht(t *testing.T) {
+	riegel := []Riegel{
+		{KapazitaetBytes: 17179869184, TaktMhz: 4800, TaktMhzZweiter: 5600,
+			Teilenummer: "TESTKIT5200C40", Kanal: "A"},
+	}
+	var einzeln bool
+	for _, b := range Speicher(riegel) {
+		if b.Titel == "Nur ein Speicherriegel verbaut" {
+			einzeln = true
+		}
+	}
+	if !einzeln {
+		t.Error("der Einkanal-Befund muss auch bei unklarem Takt kommen")
+	}
+}
+
+// Uebereinstimmende Felder heissen NICHT, dass der Wert stimmt: Auch
+// beide koennen denselben falschen Grundtakt melden. Deshalb muss der
+// Befund den Weg zum Gegenpruefen nennen, und er darf nicht auf den
+// Task-Manager verweisen, der dieselbe Tabelle liest und den Fehler nur
+// bestaetigen wuerde.
+func TestTaktbefundNenntDieGegenpruefung(t *testing.T) {
+	riegel := []Riegel{
+		{KapazitaetBytes: 17179869184, TaktMhz: 2133, TaktMhzZweiter: 2133,
+			Teilenummer: "CMK32GX4M2E3200C16", Kanal: "A"},
+		{KapazitaetBytes: 17179869184, TaktMhz: 2133, TaktMhzZweiter: 2133,
+			Teilenummer: "CMK32GX4M2E3200C16", Kanal: "B"},
+	}
+	befunde := Speicher(riegel)
+	if len(befunde) != 1 {
+		t.Fatalf("erwartet: genau der Takt-Befund, kam: %+v", befunde)
+	}
+	if !strings.Contains(befunde[0].Empfehlung, "CPU-Z") {
+		t.Error("der Befund muss sagen, womit man ihn nachpruefen kann")
+	}
+	if !strings.Contains(befunde[0].Empfehlung, "Task-Manager") {
+		t.Error("der Befund muss davor warnen, dass der Task-Manager hier nichts beweist")
+	}
+	if strings.Contains(befunde[0].Feststellung, "laufen aber mit") {
+		t.Error("der Befund darf den Ist-Takt nicht als Tatsache behaupten, wir kennen ihn nicht sicher")
 	}
 }

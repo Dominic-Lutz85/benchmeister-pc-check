@@ -31,16 +31,30 @@ type win32VideoController struct {
 // Felder werden NUR lokal angezeigt und ausgewertet, sie werden NICHT
 // uebertragen. Die Upload-Struktur in upload/client.go kennt sie nicht.
 //
-// ConfiguredClockSpeed steht bewusst NICHT hier: Auf dem Testrechner
-// meldete es denselben Wert wie Speed, naemlich den Ist-Takt. Die
-// Sollgeschwindigkeit liefert Windows ueberhaupt nicht, sie steckt allein
-// in der Teilenummer.
+// ConfiguredClockSpeed stand bis 28.08.2026 bewusst NICHT hier, mit der
+// Begruendung: "Auf dem Testrechner meldete es denselben Wert wie Speed."
+// Das war eine Stichprobe von genau einem Rechner, und sie hat getrogen.
+//
+// Ein Moderator im PCGH-Forum hat den Fehler gefunden: Sein Speicher lief
+// nachweislich mit 5600 MT/s (per HWiNFO belegt), Windows meldete in
+// Speed aber 4800, also den JEDEC-Grundtakt fuer DDR5. Das Programm hat
+// daraufhin behauptet, sein Speicher liefe zu langsam, obwohl er sogar
+// ueber dem Profil lief. Falschalarm im wichtigsten Befund ueberhaupt.
+//
+// Beide Felder werden deshalb jetzt gelesen und in der Pruefung
+// gegeneinander gehalten. Widersprechen sie sich, gibt es keinen Befund,
+// siehe pruefung.Speicher. Verlaesslich ist keines von beiden: Was in
+// SMBIOS Typ 17 landet, entscheidet das BIOS des jeweiligen Boards, und
+// manche tragen dort schlicht den SPD-Grundwert ein.
 type win32PhysicalMemory struct {
 	Capacity      uint64
 	Speed         uint32
 	PartNumber    string
 	DeviceLocator string
 	BankLabel     string
+	// Zweiter Taktwert aus derselben SMBIOS-Tabelle. Kann 0 sein, wenn das
+	// Board das Feld gar nicht fuellt.
+	ConfiguredClockSpeed uint32
 }
 
 type win32DiskDrive struct {
@@ -155,7 +169,7 @@ func grafikkarte(e *ScanResult) error {
 
 func arbeitsspeicher(e *ScanResult) {
 	var liste []win32PhysicalMemory
-	q := "select Capacity, Speed, PartNumber, DeviceLocator, BankLabel from Win32_PhysicalMemory"
+	q := "select Capacity, Speed, ConfiguredClockSpeed, PartNumber, DeviceLocator, BankLabel from Win32_PhysicalMemory"
 	if err := wmi.Query(q, &liste); err != nil {
 		return
 	}
@@ -168,6 +182,7 @@ func arbeitsspeicher(e *ScanResult) {
 		e.Riegel = append(e.Riegel, RiegelInfo{
 			KapazitaetBytes: m.Capacity,
 			TaktMhz:         m.Speed,
+			TaktMhzZweiter:  m.ConfiguredClockSpeed,
 			Teilenummer:     strings.TrimSpace(m.PartNumber),
 			Kanal:           strings.TrimSpace(m.BankLabel),
 		})

@@ -87,9 +87,16 @@ type ScanResult struct {
 // RiegelInfo ist ein einzelner Speicherbaustein, nur zur lokalen Anzeige.
 type RiegelInfo struct {
 	KapazitaetBytes uint64
-	TaktMhz         uint32
-	Teilenummer     string
-	Kanal           string
+	// Win32_PhysicalMemory.Speed.
+	TaktMhz uint32
+	// Win32_PhysicalMemory.ConfiguredClockSpeed. Zweiter Taktwert aus
+	// derselben SMBIOS-Tabelle, seit 28.08.2026 dabei. Welches der beiden
+	// Felder der Ist-Takt ist, haengt vom BIOS ab, siehe die Erklaerung an
+	// win32PhysicalMemory in scan.go. Beide zusammen sind belastbarer als
+	// eines allein, sicher ist keines.
+	TaktMhzZweiter uint32
+	Teilenummer    string
+	Kanal          string
 }
 
 // LaufwerkInfo ist ein Datentraeger, nur zur lokalen Anzeige.
