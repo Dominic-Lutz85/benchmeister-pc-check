@@ -103,11 +103,11 @@ func TestSpeicherNenntDasProfilNurWennErkennbar(t *testing.T) {
 	if len(befunde) != 1 || befunde[0].Schwere != Bestaetigung {
 		t.Fatalf("erwartet genau eine Bestaetigung, kam: %+v", befunde)
 	}
-	if !strings.Contains(befunde[0].Empfehlung, "4800") {
-		t.Errorf("der Grundtakt ohne Profil muss genannt werden: %q", befunde[0].Empfehlung)
+	if !strings.Contains(befunde[0].Hintergrund, "4800") {
+		t.Errorf("der Grundtakt ohne Profil muss genannt werden: %q", befunde[0].Hintergrund)
 	}
-	if !strings.Contains(befunde[0].Empfehlung, "EXPO") {
-		t.Errorf("bei erkennbarem Profil muss es benannt werden: %q", befunde[0].Empfehlung)
+	if !strings.Contains(befunde[0].Hintergrund, "EXPO") {
+		t.Errorf("bei erkennbarem Profil muss es benannt werden: %q", befunde[0].Hintergrund)
 	}
 
 	// Gegenprobe: Ohne Unterschied zwischen den Feldern ist nicht
@@ -122,8 +122,8 @@ func TestSpeicherNenntDasProfilNurWennErkennbar(t *testing.T) {
 		t.Fatalf("erwartet genau eine Bestaetigung, kam: %+v", befunde)
 	}
 	for _, wort := range []string{"XMP", "EXPO", "D.O.C.P"} {
-		if strings.Contains(befunde[0].Empfehlung, wort) {
-			t.Errorf("ohne Beleg darf %q nicht behauptet werden: %q", wort, befunde[0].Empfehlung)
+		if strings.Contains(befunde[0].Hintergrund, wort) {
+			t.Errorf("ohne Beleg darf %q nicht behauptet werden: %q", wort, befunde[0].Hintergrund)
 		}
 	}
 }
@@ -303,11 +303,21 @@ func TestTaktbefundNenntDieGegenpruefung(t *testing.T) {
 	if len(befunde) != 1 {
 		t.Fatalf("erwartet: genau der Takt-Befund, kam: %+v", befunde)
 	}
-	if !strings.Contains(befunde[0].Empfehlung, "CPU-Z") {
+	// Seit dem 30.08.2026 steht die Gegenpruefung im Hintergrund, also
+	// im zugeklappten Teil. Sie muss trotzdem DA sein: Sie ist der
+	// Grund, warum dieses Programm nach einem Fehlalarm bei einem
+	// PCGH-Moderator nicht mehr behauptet, sondern zum Nachpruefen
+	// auffordert. Verschieben ja, weglassen nie.
+	if !strings.Contains(befunde[0].Hintergrund, "CPU-Z") {
 		t.Error("der Befund muss sagen, womit man ihn nachpruefen kann")
 	}
-	if !strings.Contains(befunde[0].Empfehlung, "Task-Manager") {
+	if !strings.Contains(befunde[0].Hintergrund, "Task-Manager") {
 		t.Error("der Befund muss davor warnen, dass der Task-Manager hier nichts beweist")
+	}
+	// Und die Empfehlung muss ohne den Hintergrund handlungsfaehig
+	// machen. Wer nicht aufklappt, muss trotzdem wissen was zu tun ist.
+	if !strings.Contains(befunde[0].Empfehlung, "XMP") {
+		t.Error("die Empfehlung muss auch ohne Aufklappen sagen, was zu tun ist")
 	}
 	if strings.Contains(befunde[0].Feststellung, "laufen aber mit") {
 		t.Error("der Befund darf den Ist-Takt nicht als Tatsache behaupten, wir kennen ihn nicht sicher")
@@ -384,5 +394,57 @@ func TestHalbeRateVerschlucktDenRestNicht(t *testing.T) {
 	}
 	if !einRiegel {
 		t.Error("Der Einkanal-Befund fehlt, der Sonderfall hat ihn verschluckt")
+	}
+}
+
+
+/*
+ * Die Laengenbremse, angelegt am 30.08.2026.
+ *
+ * ANLASS: "Hellhammer" im PCGH-Forum, sinngemaess: zu viel begruendet,
+ * zu ausformuliert, das sei laecherlich weil unnoetig. Nachgemessen gab
+ * ihm recht. Der laengste Befund hatte 590 Zeichen, also fuenf Saetze
+ * fuer einen einzigen Fund. Bei drei Funden las man eine halbe Seite.
+ *
+ * WARUM ALS TEST UND NICHT ALS VORSATZ: Die Texte sind nicht an einem
+ * Tag lang geworden. Jeder einzelne Satz kam als Reaktion auf eine
+ * berechtigte Ruecksmeldung dazu, jeder war fuer sich richtig, und
+ * niemand hat je die Summe angesehen. Genau so wachsen solche Texte
+ * wieder, wenn nichts sie aufhaelt.
+ *
+ * Die Grenze gilt nur fuer den SICHTBAREN Teil. Der Hintergrund darf
+ * lang sein, er ist zugeklappt und wird nur gelesen, wenn jemand es
+ * wissen will.
+ */
+func TestBefundeBleibenKurz(t *testing.T) {
+	// 220 Zeichen sind etwa zwei Saetze. Wer mehr braucht, hat etwas
+	// im sichtbaren Teil stehen, das in den Hintergrund gehoert.
+	const grenze = 220
+
+	riegel := []Riegel{
+		{KapazitaetBytes: 17179869184, TaktMhz: 2133, TaktMhzZweiter: 2133,
+			Teilenummer: "CMK32GX4M2E3200C16", Kanal: "A"},
+	}
+	laufwerke := []Laufwerk{
+		{Name: "ST2000DM008", MedienArt: 3, BusArt: 11, Bytes: 2000398934016},
+		{Name: "Samsung 870 EVO", MedienArt: 4, BusArt: 11, Bytes: 1000204886016},
+	}
+	alle := append(Speicher(riegel), Laufwerke(laufwerke)...)
+	if len(alle) < 3 {
+		t.Fatalf("zu wenige Befunde zum Pruefen, kam: %d", len(alle))
+	}
+
+	for _, b := range alle {
+		sichtbar := len([]rune(b.Feststellung)) + len([]rune(b.Empfehlung))
+		if sichtbar > grenze {
+			t.Errorf(
+				"%q: sichtbarer Teil ist %d Zeichen, erlaubt sind %d. "+
+					"Was nicht zum Handeln noetig ist, gehoert in Hintergrund.",
+				b.Titel, sichtbar, grenze)
+		}
+		// Umgekehrt: Ein Befund ohne Empfehlung ist keiner.
+		if b.Empfehlung == "" {
+			t.Errorf("%q hat keine Empfehlung", b.Titel)
+		}
 	}
 }

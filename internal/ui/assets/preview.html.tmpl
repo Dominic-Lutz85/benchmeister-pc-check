@@ -40,6 +40,17 @@
   }
   .befund.hinweis { border-left-color: var(--warn); }
   .befund.gut { border-left-color: var(--ok); }
+  /* Der Aufklapper, ergaenzt am 30.08.2026. Die Begruendungen standen
+     vorher offen im Befund und machten ihn bis zu 590 Zeichen lang.
+     Ruecksmeldung von "Hellhammer" im PCGH-Forum: zu viel begruendet,
+     zu ausformuliert. Er hatte recht.
+     Bewusst ein natives <details>: kein Skript noetig, funktioniert
+     auch ohne JavaScript, und der Text ist fuer Suchfunktion und
+     Vorlesewerkzeuge trotzdem da. */
+  .mehr { margin-top: 8px; font-size: 13px; color: var(--muted); }
+  .mehr summary { cursor: pointer; color: var(--accent); user-select: none; }
+  .mehr summary:hover { text-decoration: underline; }
+  .mehr[open] summary { margin-bottom: 6px; }
   .befund .titel { font-weight: 600; margin-bottom: 2px; }
   .befund .rat { color: var(--muted); font-size: 14px; margin-top: 4px; }
   .alles-gut { color: var(--ok); }
@@ -151,6 +162,7 @@
       <div class="titel">{{.Titel}}</div>
       <div>{{.Feststellung}}</div>
       <div class="rat">{{.Empfehlung}}</div>
+      {{if .Hintergrund}}<details class="mehr"><summary>Warum?</summary>{{.Hintergrund}}</details>{{end}}
     </div>
     {{end}}
     <p class="fuss" style="margin-top:12px">
@@ -169,6 +181,7 @@
       <div class="titel">{{.Titel}}</div>
       <div>{{.Feststellung}}</div>
       <div class="rat">{{.Empfehlung}}</div>
+      {{if .Hintergrund}}<details class="mehr"><summary>Warum?</summary>{{.Hintergrund}}</details>{{end}}
     </div>
     {{end}}
   </div>
@@ -188,6 +201,7 @@
       <div class="titel">{{.Titel}}</div>
       <div>{{.Feststellung}}</div>
       <div class="rat">{{.Empfehlung}}</div>
+      {{if .Hintergrund}}<details class="mehr"><summary>Warum?</summary>{{.Hintergrund}}</details>{{end}}
     </div>
     {{end}}
   </div>

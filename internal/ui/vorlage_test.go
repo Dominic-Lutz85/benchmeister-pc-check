@@ -103,3 +103,81 @@ func TestKeineLeerKarteWennBestaetigungVorliegt(t *testing.T) {
 		t.Error("ohne echte Funde darf die Fund-Ueberschrift nicht erscheinen")
 	}
 }
+
+/*
+ * Der Aufklapper, angelegt am 30.08.2026.
+ *
+ * Der Hintergrund eines Befundes muss in einem ZUGEKLAPPTEN Block
+ * landen, nicht offen im Text. Sonst waere die Umstellung wirkungslos:
+ * Die Begruendungen stuenden wieder da, nur an anderer Stelle, und der
+ * Befund waere so lang wie vorher.
+ *
+ * Geprueft wird auch, dass <details> KEIN open traegt. Ein aufgeklapptes
+ * details sieht im Quelltext fast gleich aus und macht den ganzen
+ * Umbau zunichte.
+ */
+func TestHintergrundStehtImAufklapper(t *testing.T) {
+	befund := pruefung.Befund{
+		Schwere:      pruefung.Hinweis,
+		Titel:        "Nur ein Speicherriegel verbaut",
+		Feststellung: "Mit einem einzelnen Riegel läuft der Speicher im Einkanalbetrieb.",
+		Empfehlung:   "Einen zweiten, baugleichen Riegel ergänzen.",
+		Hintergrund:  "Zwei Riegel arbeiten nebeneinander und verdoppeln die Bandbreite.",
+	}
+	alle := []pruefung.Befund{befund}
+	kostenlos, kostenpflichtig, laeuft := nachKosten(alle)
+	html := rendere(t, vorlagenDaten{
+		Scan:            &scan.ScanResult{},
+		Befunde:         alle,
+		Kostenlos:       kostenlos,
+		Kostenpflichtig: kostenpflichtig,
+		Laeuft:          laeuft,
+	})
+
+	if !strings.Contains(html, befund.Hintergrund) {
+		t.Error("der Hintergrund fehlt auf der Seite")
+	}
+	if !strings.Contains(html, "<summary>Warum?</summary>") {
+		t.Error("der Aufklapper fehlt")
+	}
+	if strings.Contains(html, `<details class="mehr" open`) {
+		t.Error("der Aufklapper darf nicht offen starten, sonst ist er wirkungslos")
+	}
+
+	// Der Hintergrund muss INNERHALB des details stehen, nicht davor.
+	// Auf die eigene Klasse eingrenzen: Die Vorlage hat noch einen
+	// zweiten Aufklapper fuer die Rohdaten, und der steht weiter oben.
+	auf := strings.Index(html, `<details class="mehr"`)
+	// Ab dem oeffnenden Tag suchen. Sonst findet man das schliessende
+	// des Rohdaten-Aufklappers, der weiter oben steht.
+	zu := auf + strings.Index(html[auf:], "</details>")
+	pos := strings.Index(html, befund.Hintergrund)
+	if auf < 0 || zu < 0 {
+		t.Fatal("kein details-Block im Ergebnis")
+	}
+	if pos < auf || pos > zu {
+		t.Error("der Hintergrund steht ausserhalb des Aufklappers")
+	}
+}
+
+// Ein Befund ohne Hintergrund darf keinen leeren Aufklapper erzeugen.
+// Ein "Warum?" das nichts erklaert, ist schlimmer als keines.
+func TestOhneHintergrundKeinAufklapper(t *testing.T) {
+	alle := []pruefung.Befund{{
+		Schwere:      pruefung.Hinweis,
+		Titel:        "Irgendein Fund",
+		Feststellung: "Etwas ist auffällig.",
+		Empfehlung:   "Etwas tun.",
+	}}
+	kostenlos, kostenpflichtig, laeuft := nachKosten(alle)
+	html := rendere(t, vorlagenDaten{
+		Scan:            &scan.ScanResult{},
+		Befunde:         alle,
+		Kostenlos:       kostenlos,
+		Kostenpflichtig: kostenpflichtig,
+		Laeuft:          laeuft,
+	})
+	if strings.Contains(html, `<details class="mehr"`) {
+		t.Error("ohne Hintergrund darf kein leerer Aufklapper erscheinen")
+	}
+}

@@ -82,6 +82,22 @@ type Befund struct {
 	Feststellung string
 	// Was man dagegen tun kann. Bewusst konkret, nicht "optimieren Sie".
 	Empfehlung string
+	// Warum das so ist, wie man gegenprueft, welche Ausnahmen es gibt.
+	//
+	// Steht in der Anzeige in einem ZUGEKLAPPTEN Block. Eingefuehrt am
+	// 29.08.2026 nach einer Ruecksmeldung von "Hellhammer" im
+	// PCGH-Forum: zu viel begruendet, zu ausformuliert.
+	//
+	// Er hatte recht. Der laengste Befund hatte 590 Zeichen, fuenf
+	// Saetze fuer einen Fund. Falsch war aber nicht die Ehrlichkeit,
+	// sondern dass alles auf einer Ebene stand. Jeder dieser Saetze
+	// hatte mal einen Fehler verhindert, keiner davon gehoert
+	// geloescht. Sie gehoeren nur nicht alle nach vorn.
+	//
+	// FAUSTREGEL BEIM SCHREIBEN: Feststellung und Empfehlung muessen
+	// allein ausreichen, um richtig zu handeln. Alles, was nur der
+	// braucht, der es genau wissen will, kommt hierher.
+	Hintergrund string
 }
 
 // Riegel ist ein einzelner Speicherbaustein, so wie Windows ihn meldet.
@@ -155,12 +171,16 @@ var zahlenMuster = regexp.MustCompile(`\d{4}`)
  * unabhängige zweite Meinung. Es zeigt die halbe Rate (DDR heißt Double
  * Data Rate), deshalb steht die Verdoppelung ausdrücklich dabei.
  */
-const gegenpruefung = "Bitte erst gegenprüfen, bevor du etwas umstellst: Manche Mainboards " +
-	"tragen hier nur den Grundtakt ein, obwohl der Speicher längst schneller läuft. Der " +
-	"Windows-Task-Manager hilft dabei nicht, der liest dieselbe Tabelle wie ich. Verlässlich " +
-	"ist das kostenlose CPU-Z: Reiter Memory, den Wert bei DRAM Frequency mal zwei nehmen, " +
-	"das ergibt die MT/s. Kommt dort etwas anderes heraus als hier, liegt der Fehler bei mir, " +
-	"und ich würde mich sehr über eine Nachricht über benchmeister.de/kontakt freuen."
+// Die Gegenpruef-Erklaerung. Stand bis zum 29.08.2026 mitten in den
+// Empfehlungen und machte sie allein schon 486 Zeichen lang. Jetzt ist
+// sie Hintergrund: Wer nur wissen will was zu tun ist, liest den kurzen
+// Satz oben, wer misstrauisch ist, klappt auf.
+const gegenpruefung = "Manche Mainboards tragen hier nur den Grundtakt ein, obwohl der " +
+	"Speicher längst schneller läuft. Der Windows-Task-Manager hilft dabei nicht, der liest " +
+	"dieselbe Tabelle wie ich. Verlässlich ist das kostenlose CPU-Z: Reiter Memory, den Wert " +
+	"bei DRAM Frequency mal zwei nehmen, das ergibt die MT/s. Kommt dort etwas anderes heraus " +
+	"als hier, liegt der Fehler bei mir, und ich würde mich sehr über eine Nachricht über " +
+	"benchmeister.de/kontakt freuen."
 
 // sollTaktAusTeilenummer liest die Soll-Geschwindigkeit aus einer
 // Teilenummer. Gibt 0 zurück, wenn sich nichts Eindeutiges finden lässt.
@@ -305,18 +325,17 @@ func Speicher(riegel []Riegel) []Befund {
 				Schwere: Hinweis,
 				Titel:   "Windows meldet genau den halben Speichertakt",
 				Feststellung: fmt.Sprintf(
-					"Deine Riegel sind für %d MT/s gebaut, Windows meldet %d MT/s. "+
-						"Das ist fast exakt die Hälfte, und das hat erfahrungsgemäß "+
-						"zwei mögliche Gründe.",
+					"Deine Riegel sind für %d MT/s gebaut, Windows meldet %d. Genau die Hälfte.",
 					sollTakt, istTakt),
-				Empfehlung: "Entweder zählt Windows hier die reine Taktrate statt der " +
-					"Übertragungen pro Sekunde. Speicher überträgt zweimal je Takt, " +
-					"aus 3200 werden dann 1600, und in dem Fall ist alles in Ordnung. " +
-					"Oder dein Speicher läuft wirklich halb so schnell. " +
-					gegenpruefung + " Zeigt CPU-Z nach der Verdopplung den vollen Wert, " +
-					"ist alles gut und du kannst das hier vergessen. Zeigt es denselben " +
-					"halben Wert, schalte im BIOS das Speicherprofil ein: bei Intel XMP, " +
-					"bei AMD EXPO oder D.O.C.P.",
+				Empfehlung: "Mit CPU-Z gegenprüfen: Reiter Memory, den Wert bei DRAM " +
+					"Frequency mal zwei. Stimmt er, ist alles gut. Wenn nicht, im BIOS " +
+					"das Speicherprofil einschalten (XMP, EXPO oder D.O.C.P.).",
+				Hintergrund: "Genau die Hälfte hat erfahrungsgemäß zwei mögliche Gründe. " +
+					"Entweder zählt Windows die reine Taktrate statt der Übertragungen pro " +
+					"Sekunde. Speicher überträgt zweimal je Takt, aus 3200 werden dann 1600, " +
+					"und dann ist alles in Ordnung. Oder dein Speicher läuft wirklich halb so " +
+					"schnell. Beides sieht von hier aus gleich aus, deshalb die Gegenprobe. " +
+					gegenpruefung,
 			})
 		}
 	}
@@ -343,13 +362,15 @@ func Speicher(riegel []Riegel) []Befund {
 			Schwere: Hinweis,
 			Titel:   "Arbeitsspeicher läuft womöglich unter seiner Sollgeschwindigkeit",
 			Feststellung: fmt.Sprintf(
-				"Deine Riegel sind für %d MT/s gebaut, Windows meldet für sie aber "+
-					"%d MT/s. Trifft das zu, wären rund %d Prozent mehr Bandbreite drin.",
+				"Deine Riegel sind für %d MT/s gebaut, Windows meldet %d. Rund %d Prozent "+
+					"mehr Bandbreite wären drin.",
 				sollTakt, istTakt, gewinn),
-			Empfehlung: gegenpruefung + " Bestätigt sich der niedrige Wert, schalte im BIOS " +
-				"das Speicherprofil ein: bei Intel heißt es XMP, bei AMD EXPO oder D.O.C.P. " +
-				"Kostet nichts und ist in zwei Minuten erledigt. Läuft der Rechner danach " +
-				"unruhig, das Profil wieder ausschalten.",
+			Empfehlung: "Im BIOS das Speicherprofil einschalten: XMP bei Intel, " +
+				"EXPO oder D.O.C.P. bei AMD. Dauert zwei Minuten.",
+			Hintergrund: "Vorher gegenprüfen lohnt sich. " + gegenpruefung +
+				" Läuft der Rechner nach dem Einschalten unruhig, das Profil wieder " +
+				"ausschalten. Dann vertragen sich die Riegel nicht mit der Einstellung, " +
+				"und daran ist nichts kaputt.",
 		})
 	}
 
@@ -373,13 +394,14 @@ func Speicher(riegel []Riegel) []Befund {
 		feststellung := fmt.Sprintf(
 			"Deine Riegel sind für %d MT/s gebaut und laufen laut Windows mit %d MT/s.",
 			sollTakt, istTakt)
-		empfehlung := "Hier ist nichts zu tun. Mehr geben diese Riegel nicht her, " +
-			"ohne sie über ihre Vorgabe hinaus zu betreiben."
+		empfehlung := "Hier ist nichts zu tun."
+		hintergrund := "Mehr geben diese Riegel nicht her, ohne sie über ihre Vorgabe " +
+			"hinaus zu betreiben."
 		if jedecTakt > 0 && istTakt > jedecTakt {
-			empfehlung = fmt.Sprintf(
-				"Ohne Speicherprofil würden sie mit %d MT/s laufen, dein Mainboard hat "+
+			hintergrund = fmt.Sprintf(
+				"Ohne Speicherprofil würden sie mit %d MT/s laufen. Dein Mainboard hat "+
 					"also mehr eingestellt: XMP, EXPO oder D.O.C.P. ist an, oder jemand "+
-					"hat von Hand nachgeholfen. Hier ist nichts zu tun.",
+					"hat von Hand nachgeholfen.",
 				jedecTakt)
 		}
 		befunde = append(befunde, Befund{
@@ -387,6 +409,7 @@ func Speicher(riegel []Riegel) []Befund {
 			Titel:        "Der Arbeitsspeicher läuft auf Sollgeschwindigkeit",
 			Feststellung: feststellung,
 			Empfehlung:   empfehlung,
+			Hintergrund:  hintergrund,
 		})
 	}
 
@@ -395,10 +418,12 @@ func Speicher(riegel []Riegel) []Befund {
 		befunde = append(befunde, Befund{
 			Schwere: Hinweis,
 			Titel:   "Nur ein Speicherriegel verbaut",
-			Feststellung: "Mit einem einzelnen Riegel läuft der Speicher im Einkanalbetrieb. " +
-				"Ein zweiter gleicher Riegel bringt spürbar mehr, vor allem bei Grafikeinheiten im Prozessor.",
-			Empfehlung: "Einen zweiten, baugleichen Riegel ergänzen. Zwei mal 8 GB sind " +
-				"schneller als einmal 16 GB.",
+			Feststellung: "Mit einem einzelnen Riegel läuft der Speicher im Einkanalbetrieb.",
+			Empfehlung:   "Einen zweiten, baugleichen Riegel ergänzen.",
+			Hintergrund: "Zwei Riegel arbeiten nebeneinander und verdoppeln die Bandbreite. " +
+				"Zwei mal 8 GB sind deshalb schneller als einmal 16 GB. Am deutlichsten " +
+				"merkt man das bei Prozessoren mit eingebauter Grafik, weil die sich den " +
+				"Arbeitsspeicher mit dem Rest teilen müssen.",
 		})
 	}
 
@@ -417,11 +442,14 @@ func Speicher(riegel []Riegel) []Befund {
 			Schwere: Anmerkung,
 			Titel:   "Verschiedene Speicherriegel gemischt",
 			Feststellung: fmt.Sprintf(
-				"Es sind %d verschiedene Riegeltypen verbaut. Das läuft, ist aber der "+
-					"häufigste Grund dafür, dass sich das Speicherprofil nicht stabil aktivieren lässt.",
+				"Es sind %d verschiedene Riegeltypen verbaut. Das läuft, ist aber kein Idealzustand.",
 				len(verschiedene)),
-			Empfehlung: "Wenn das Profil aus Punkt eins nicht stabil läuft, liegt es " +
-				"vermutlich hieran. Ein einheitlicher Satz Riegel löst das.",
+			Empfehlung: "Nichts tun, solange alles stabil läuft.",
+			Hintergrund: "Gemischte Riegel sind der häufigste Grund dafür, dass sich das " +
+				"Speicherprofil nicht stabil aktivieren lässt. Wenn du oben den Hinweis zum " +
+				"Profil bekommen hast und es nach dem Einschalten hakt, liegt es vermutlich " +
+				"hieran. Ein einheitlicher Satz Riegel löst das, ist aber ein Neukauf und " +
+				"lohnt sich nur, wenn dich wirklich etwas stört.",
 		})
 	}
 
@@ -443,8 +471,8 @@ func Laufwerke(laufwerke []Laufwerk) []Befund {
 				Schwere: Zukauf,
 				Titel:   "Magnetfestplatte verbaut",
 				Feststellung: fmt.Sprintf(
-					"%s ist eine klassische Festplatte mit Scheiben. Beim Starten und "+
-						"Laden ist sie um ein Vielfaches langsamer als jede SSD.",
+					"%s ist eine Festplatte mit Scheiben, um ein Vielfaches langsamer "+
+						"als jede SSD.",
 					strings.TrimSpace(l.Name)),
 				// Der zweite Satz ist am 28.08.2026 dazugekommen. Vorher
 				// stand hier nur der Aufrüst-Rat, und ein Moderator im
@@ -456,11 +484,14 @@ func Laufwerke(laufwerke []Laufwerk) []Befund {
 				// "Misanthrop68" im PCGH-Forum geschaerft: Erst sagen, wofuer
 				// die Platte NICHT taugt, dann wofuer sie weiterhin gut ist.
 				// Vorher stand die Entwarnung hinten und wurde ueberlesen.
-				Empfehlung: "Für Windows und Programme ist eine Festplatte heute keine gute " +
+				Empfehlung: "Liegen Windows oder Spiele darauf, lohnt der Umzug auf eine " +
+					"SSD. Ist es nur der Datenkeller, ist alles richtig.",
+				Hintergrund: "Beim Starten und beim Laden macht sich das am deutlichsten " +
+					"bemerkbar. Für Windows und Programme ist eine Festplatte heute keine gute " +
 					"Grundlage mehr, dort kostet sie bei jedem Start und jedem Ladebildschirm " +
 					"Zeit. Für Sicherungen, Archive, Fotos und Musik ist sie dagegen völlig in " +
-					"Ordnung und pro Terabyte konkurrenzlos günstig. Liegt dein System auf einer " +
-					"SSD und hier nur der Datenkeller, ist alles richtig, dann ignorier das hier.",
+					"Ordnung und pro Terabyte konkurrenzlos günstig. Es kommt also darauf an, " +
+					"was darauf liegt, und das sehe ich von hier aus nicht.",
 			})
 			continue
 		}
@@ -469,8 +500,8 @@ func Laufwerke(laufwerke []Laufwerk) []Befund {
 				Schwere: Zukauf,
 				Titel:   "SSD hängt am SATA-Anschluss",
 				Feststellung: fmt.Sprintf(
-					"%s ist eine SSD, hängt aber am SATA-Anschluss. Der begrenzt auf "+
-						"etwa 550 MB/s, eine NVMe-SSD im M.2-Steckplatz schafft ein Vielfaches.",
+					"%s hängt am SATA-Anschluss. Der begrenzt auf etwa 550 MB/s, eine "+
+						"NVMe im M.2-Steckplatz schafft ein Vielfaches.",
 					strings.TrimSpace(l.Name)),
 				// Der erste Satz stellt klar, dass das kein Handgriff ist.
 				// Vorher las sich der Befund, als könne man die Platte
@@ -479,13 +510,13 @@ func Laufwerke(laufwerke []Laufwerk) []Befund {
 				// Ebenfalls nach dem Vorschlag von "Misanthrop68" (29.08.2026):
 				// Der Hinweis soll klar sagen, dass es KEINEN Grund zum Handeln
 				// gibt, und den einen Zeitpunkt nennen, an dem es sich lohnt.
-				Empfehlung: "Umstecken geht nicht, SATA und M.2 sind zwei verschiedene " +
-					"Bauformen, es liefe also auf eine neue SSD hinaus. Einen Grund dafür " +
+				Empfehlung: "Nichts tun. Erst wenn diese SSD ohnehin ersetzt wird, " +
+					"lieber gleich eine M.2 nehmen.",
+				Hintergrund: "Umstecken geht nicht, SATA und M.2 sind zwei verschiedene " +
+					"Bauformen, es liefe also auf einen Neukauf hinaus. Einen Grund dafür " +
 					"gibt es gerade nicht: Im Alltag merkt man den Unterschied kaum, das ist " +
-					"etwas ganz anderes als der Sprung von Festplatte auf SSD. Lohnend wird " +
-					"es erst, wenn diese SSD ohnehin ersetzt wird, weil sie defekt oder zu " +
-					"klein ist. Dann lieber gleich eine M.2, die ist schneller und braucht " +
-					"keinen Platz im Gehäuse.",
+					"etwas ganz anderes als der Sprung von Festplatte auf SSD. Eine M.2 ist " +
+					"außerdem schneller und braucht keinen Platz im Gehäuse.",
 			})
 		}
 	}
