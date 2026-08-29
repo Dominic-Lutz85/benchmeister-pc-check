@@ -61,6 +61,10 @@ type vorlagenDaten struct {
 	// siehe Begruendung in preview.html.tmpl.
 	Kostenlos       []pruefung.Befund
 	Kostenpflichtig []pruefung.Befund
+	// Was schon richtig laeuft. Eigene Liste und eigene Karte, damit die
+	// Ueberschrift "Das hier kostet dich gerade Leistung" wahr bleibt.
+	// Siehe Begruendung bei pruefung.Bestaetigung.
+	Laeuft []pruefung.Befund
 	// Alle Datentraeger als fertige Zeilen fuer die Hardware-Uebersicht.
 	Laufwerke []LaufwerkZeile
 }
@@ -123,15 +127,18 @@ func laufwerksZeilen(e *scan.ScanResult) []LaufwerkZeile {
 }
 
 // nachKosten teilt die Befunde in die beiden Anzeigebloecke.
-func nachKosten(alle []pruefung.Befund) (kostenlos, kostenpflichtig []pruefung.Befund) {
+func nachKosten(alle []pruefung.Befund) (kostenlos, kostenpflichtig, laeuft []pruefung.Befund) {
 	for _, b := range alle {
-		if b.Schwere == pruefung.Zukauf {
+		switch b.Schwere {
+		case pruefung.Zukauf:
 			kostenpflichtig = append(kostenpflichtig, b)
-			continue
+		case pruefung.Bestaetigung:
+			laeuft = append(laeuft, b)
+		default:
+			kostenlos = append(kostenlos, b)
 		}
-		kostenlos = append(kostenlos, b)
 	}
-	return kostenlos, kostenpflichtig
+	return kostenlos, kostenpflichtig, laeuft
 }
 
 type zustimmung struct {
@@ -250,13 +257,14 @@ func Anzeigen(ergebnis *scan.ScanResult) (string, error) {
 		// Das ist der Neuladen-Fall, siehe /verlassen.
 		bleibt()
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		kostenlos, kostenpflichtig := nachKosten(befunde)
+		kostenlos, kostenpflichtig, laeuft := nachKosten(befunde)
 		_ = vorlage.Execute(w, vorlagenDaten{
 			Scan:            ergebnis,
 			RohdatenJSON:    rohdaten,
 			Befunde:         befunde,
 			Kostenlos:       kostenlos,
 			Kostenpflichtig: kostenpflichtig,
+			Laeuft:          laeuft,
 			Laufwerke:       laufwerksZeilen(ergebnis),
 		})
 	})

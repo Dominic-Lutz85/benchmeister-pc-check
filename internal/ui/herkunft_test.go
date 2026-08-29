@@ -135,11 +135,21 @@ func TestNachKostenTrenntZukaufAb(t *testing.T) {
 		{Schwere: pruefung.Zukauf, Titel: "Magnetfestplatte verbaut"},
 		{Schwere: pruefung.Anmerkung, Titel: "Riegel gemischt"},
 		{Schwere: pruefung.Zukauf, Titel: "SSD haengt am SATA-Anschluss"},
+		{Schwere: pruefung.Bestaetigung, Titel: "Speicher laeuft auf Soll"},
 	}
-	kostenlos, kostenpflichtig := nachKosten(alle)
+	kostenlos, kostenpflichtig, laeuft := nachKosten(alle)
 
-	if len(kostenlos) != 2 || len(kostenpflichtig) != 2 {
-		t.Fatalf("erwartet 2 und 2, kam %d und %d", len(kostenlos), len(kostenpflichtig))
+	if len(kostenlos) != 2 || len(kostenpflichtig) != 2 || len(laeuft) != 1 {
+		t.Fatalf("erwartet 2, 2 und 1, kam %d, %d und %d",
+			len(kostenlos), len(kostenpflichtig), len(laeuft))
+	}
+	// Eine Bestaetigung darf NIE unter der Gratis-Ueberschrift landen.
+	// Dort steht "Das hier kostet dich gerade Leistung", und das waere
+	// bei einem Bauteil, das richtig laeuft, schlicht falsch.
+	for _, b := range kostenlos {
+		if b.Schwere == pruefung.Bestaetigung {
+			t.Errorf("%q laeuft richtig und gehoert nicht unter die Fund-Ueberschrift", b.Titel)
+		}
 	}
 	for _, b := range kostenlos {
 		if b.Schwere == pruefung.Zukauf {
@@ -156,8 +166,8 @@ func TestNachKostenTrenntZukaufAb(t *testing.T) {
 // Ohne Befunde duerfen beide Bloecke leer bleiben, damit die Seite nicht
 // zwei leere Karten zeigt.
 func TestNachKostenOhneBefunde(t *testing.T) {
-	kostenlos, kostenpflichtig := nachKosten(nil)
-	if len(kostenlos) != 0 || len(kostenpflichtig) != 0 {
-		t.Error("ohne Befunde muessen beide Listen leer sein")
+	kostenlos, kostenpflichtig, laeuft := nachKosten(nil)
+	if len(kostenlos) != 0 || len(kostenpflichtig) != 0 || len(laeuft) != 0 {
+		t.Error("ohne Befunde muessen alle drei Listen leer sein")
 	}
 }

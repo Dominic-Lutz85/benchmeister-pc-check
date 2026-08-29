@@ -70,13 +70,61 @@ func TestSpeicherErkenntAbgeschaltetesProfil(t *testing.T) {
 	}
 }
 
-func TestSpeicherSchweigtWennAllesPasst(t *testing.T) {
+// Bis zum 29.08.2026 hiess dieser Test "SchweigtWennAllesPasst" und
+// verlangte GAR keinen Befund. Die Erwartung hat sich bewusst gedreht,
+// nach einem Vorschlag von "Misanthrop68" im PCGH-Forum: Schweigen laesst
+// sich von Uebersehen nicht unterscheiden. Was gleich bleibt: Es darf
+// kein HINWEIS kommen, also nichts, was nach Handlungsbedarf aussieht.
+func TestSpeicherBestaetigtWennAllesPasst(t *testing.T) {
 	riegel := []Riegel{
 		{KapazitaetBytes: 17179869184, TaktMhz: 6000, Teilenummer: "CMK32GX5M2B6000C36", Kanal: "A"},
 		{KapazitaetBytes: 17179869184, TaktMhz: 6000, Teilenummer: "CMK32GX5M2B6000C36", Kanal: "B"},
 	}
-	if befunde := Speicher(riegel); len(befunde) != 0 {
-		t.Errorf("bei einwandfreier Bestueckung darf nichts gemeldet werden, kam: %+v", befunde)
+	befunde := Speicher(riegel)
+	if len(befunde) != 1 || befunde[0].Schwere != Bestaetigung {
+		t.Fatalf("erwartet genau eine Bestaetigung, kam: %+v", befunde)
+	}
+	for _, b := range befunde {
+		if b.Schwere == Hinweis {
+			t.Errorf("bei einwandfreier Bestueckung darf kein Hinweis kommen: %q", b.Titel)
+		}
+	}
+}
+
+// Laeuft der Speicher ueber seinem JEDEC-Grundtakt, hat das Board mehr
+// eingestellt als die Werksvorgabe. Nur DANN darf von einem Profil die
+// Rede sein. Genau der Fall des Moderators: Speed 4800, konfiguriert 5600.
+func TestSpeicherNenntDasProfilNurWennErkennbar(t *testing.T) {
+	mitProfil := []Riegel{
+		{KapazitaetBytes: 17179869184, TaktMhz: 4800, TaktMhzZweiter: 5600, Teilenummer: "CMK32GX5M2B5600C36", Kanal: "A"},
+		{KapazitaetBytes: 17179869184, TaktMhz: 4800, TaktMhzZweiter: 5600, Teilenummer: "CMK32GX5M2B5600C36", Kanal: "B"},
+	}
+	befunde := Speicher(mitProfil)
+	if len(befunde) != 1 || befunde[0].Schwere != Bestaetigung {
+		t.Fatalf("erwartet genau eine Bestaetigung, kam: %+v", befunde)
+	}
+	if !strings.Contains(befunde[0].Empfehlung, "4800") {
+		t.Errorf("der Grundtakt ohne Profil muss genannt werden: %q", befunde[0].Empfehlung)
+	}
+	if !strings.Contains(befunde[0].Empfehlung, "EXPO") {
+		t.Errorf("bei erkennbarem Profil muss es benannt werden: %q", befunde[0].Empfehlung)
+	}
+
+	// Gegenprobe: Ohne Unterschied zwischen den Feldern ist nicht
+	// feststellbar, ob ein Profil laeuft. Dann darf keines behauptet
+	// werden, auch nicht vorsichtig.
+	ohneProfil := []Riegel{
+		{KapazitaetBytes: 17179869184, TaktMhz: 6000, Teilenummer: "CMK32GX5M2B6000C36", Kanal: "A"},
+		{KapazitaetBytes: 17179869184, TaktMhz: 6000, Teilenummer: "CMK32GX5M2B6000C36", Kanal: "B"},
+	}
+	befunde = Speicher(ohneProfil)
+	if len(befunde) != 1 {
+		t.Fatalf("erwartet genau eine Bestaetigung, kam: %+v", befunde)
+	}
+	for _, wort := range []string{"XMP", "EXPO", "D.O.C.P"} {
+		if strings.Contains(befunde[0].Empfehlung, wort) {
+			t.Errorf("ohne Beleg darf %q nicht behauptet werden: %q", wort, befunde[0].Empfehlung)
+		}
 	}
 }
 
@@ -84,9 +132,14 @@ func TestSpeicherErkenntEinzelnenRiegel(t *testing.T) {
 	riegel := []Riegel{
 		{KapazitaetBytes: 17179869184, TaktMhz: 6000, Teilenummer: "CMK32GX5M2B6000C36", Kanal: "A"},
 	}
-	befunde := Speicher(riegel)
-	if len(befunde) != 1 || befunde[0].Titel != "Nur ein Speicherriegel verbaut" {
-		t.Errorf("Einkanalbetrieb wurde nicht erkannt, kam: %+v", befunde)
+	var einkanal bool
+	for _, b := range Speicher(riegel) {
+		if b.Titel == "Nur ein Speicherriegel verbaut" {
+			einkanal = true
+		}
+	}
+	if !einkanal {
+		t.Errorf("Einkanalbetrieb wurde nicht erkannt, kam: %+v", Speicher(riegel))
 	}
 }
 

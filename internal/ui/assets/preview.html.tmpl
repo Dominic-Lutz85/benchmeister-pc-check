@@ -39,6 +39,7 @@
     margin: 14px 0;
   }
   .befund.hinweis { border-left-color: var(--warn); }
+  .befund.gut { border-left-color: var(--ok); }
   .befund .titel { font-weight: 600; margin-bottom: 2px; }
   .befund .rat { color: var(--muted); font-size: 14px; margin-top: 4px; }
   .alles-gut { color: var(--ok); }
@@ -172,11 +173,36 @@
     {{end}}
   </div>
   {{end}}
+  {{/* Was schon richtig laeuft. Ergaenzt am 29.08.2026 nach einem
+       Vorschlag von "Misanthrop68" im PCGH-Forum: Ohne eine positive
+       Rueckmeldung kann ein Neuling Schweigen nicht von Uebersehen
+       unterscheiden. Eigene Karte, damit die Ueberschrift der Fund-Karte
+       darueber wahr bleibt. */}}
+  {{if .Laeuft}}
+  <div class="karte">
+    <p class="unter" style="margin-bottom:4px">
+      Das läuft schon so, wie es soll.
+    </p>
+    {{range .Laeuft}}
+    <div class="befund gut">
+      <div class="titel">{{.Titel}}</div>
+      <div>{{.Feststellung}}</div>
+      <div class="rat">{{.Empfehlung}}</div>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{/* Greift jetzt nur noch, wenn es WIRKLICH nichts zu sagen gibt, also
+       auch keine Bestaetigung. Das ist der Fall, wenn die Teilenummer der
+       Riegel unbekannt ist und deshalb kein Soll-Takt feststeht. */}}
   {{if not .Befunde}}
   <div class="karte">
     <p class="alles-gut" style="margin:0">
-      Nichts gefunden. Dein Arbeitsspeicher läuft mit seiner
-      Sollgeschwindigkeit und die Laufwerke hängen dort, wo sie hingehören.
+      Nichts gefunden. Es gab aber auch nichts, woran sich der
+      Speichertakt hätte messen lassen: Zu deinen Riegeln ist hier keine
+      Sollgeschwindigkeit hinterlegt. Die Laufwerke hängen dort, wo sie
+      hingehören.
     </p>
   </div>
   {{end}}

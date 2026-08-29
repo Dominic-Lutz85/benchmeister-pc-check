@@ -53,6 +53,25 @@ const (
 	// nicht einmal, die Bauformen sind verschieden. Wer so etwas liest,
 	// glaubt dem Rest der Seite auch nicht mehr.
 	Zukauf Schwere = "zukauf"
+	// Bestaetigung: hier ist nichts zu tun, und genau das ist die
+	// Nachricht.
+	//
+	// Eingefuehrt am 29.08.2026 auf Vorschlag von "Misanthrop68" im
+	// PCGH-Forum. Seine Frage: Waere es nicht besser, einem Neuling auch
+	// zu sagen, DASS der Speicher mit aktivem Profil laeuft? "So hat er
+	// keine Rueckmeldung und koennte verunsichert sein."
+	//
+	// Der Punkt sitzt. Bisher schwieg das Programm zum Speichertakt,
+	// sobald er in Ordnung war. Wer nicht weiss, wie das Programm
+	// arbeitet, kann Schweigen nicht von Uebersehen unterscheiden. Es gab
+	// zwar den Fall "gar nichts gefunden", der etwas Positives sagte, aber
+	// der greift nur, wenn ueberhaupt kein Befund vorliegt. Wer Spiele auf
+	// einer Festplatte hat, sah zum Speicher weiterhin nichts.
+	//
+	// Bestaetigungen stehen in einer EIGENEN Karte, nicht zwischen den
+	// Funden. Sonst waere die Ueberschrift "Das hier kostet dich gerade
+	// Leistung" wieder gelogen, derselbe Fehler wie beim Zukauf-Fall.
+	Bestaetigung Schwere = "bestaetigung"
 )
 
 // Befund ist ein einzelnes Ergebnis der Prüfung.
@@ -222,6 +241,12 @@ func Speicher(riegel []Riegel) []Befund {
 	// TestScanUndPruefungRechnenGleich in internal/ui haelt beide
 	// zusammen und faellt, wenn sie auseinanderlaufen.
 	var istTakt uint32
+	// Der Grundtakt OHNE Profil, also Win32_PhysicalMemory.Speed allein.
+	// Wird nur fuer die Bestaetigung weiter unten gebraucht: Liegt der
+	// Ist-Takt darueber, hat das Board nachweislich mehr eingestellt als
+	// die Werksvorgabe, und nur dann darf von einem Profil die Rede sein.
+	// Fuer die Fehlersuche taugt das Feld nicht, siehe Kommentar oben.
+	var jedecTakt uint32
 	for _, r := range riegel {
 		takt := r.TaktMhzZweiter
 		if takt == 0 {
@@ -230,6 +255,9 @@ func Speicher(riegel []Riegel) []Befund {
 		// Bei gemischten Riegeln zählt der langsamste, mit dem läuft alles.
 		if takt > 0 && (istTakt == 0 || takt < istTakt) {
 			istTakt = takt
+		}
+		if r.TaktMhz > 0 && (jedecTakt == 0 || r.TaktMhz < jedecTakt) {
+			jedecTakt = r.TaktMhz
 		}
 	}
 
@@ -322,6 +350,43 @@ func Speicher(riegel []Riegel) []Befund {
 				"das Speicherprofil ein: bei Intel heißt es XMP, bei AMD EXPO oder D.O.C.P. " +
 				"Kostet nichts und ist in zwei Minuten erledigt. Läuft der Rechner danach " +
 				"unruhig, das Profil wieder ausschalten.",
+		})
+	}
+
+	/*
+	 * Die Gegenrichtung: Der Takt stimmt, und das wird auch gesagt.
+	 *
+	 * Bedingung ist bewusst "nicht nennenswert unter Soll" und nicht
+	 * "ueber der JEDEC-Basis". Beides waere richtig, aber nur das erste
+	 * beantwortet die Frage, die sich der Nutzer stellt: Hole ich hier
+	 * alles heraus?
+	 *
+	 * WAS HIER NICHT BEHAUPTET WIRD: dass XMP oder EXPO eingeschaltet
+	 * ist. Sicher wissen wir das nicht, das BIOS koennte auch von Hand
+	 * eingestellt sein, und bei Riegeln ohne Profil ist der Grundtakt
+	 * bereits der Sollwert. Deshalb steht da die Messung ("laeuft mit X,
+	 * gebaut fuer Y") und nur dort ein Wort zum Profil, wo der Ist-Takt
+	 * tatsaechlich ueber dem JEDEC-Grundtakt liegt. Das ist der einzige
+	 * Fall, in dem sich das aus den Daten ableiten laesst.
+	 */
+	if !halbeRate && sollTakt > 0 && istTakt > 0 && float64(istTakt) >= float64(sollTakt)*0.95 {
+		feststellung := fmt.Sprintf(
+			"Deine Riegel sind für %d MT/s gebaut und laufen laut Windows mit %d MT/s.",
+			sollTakt, istTakt)
+		empfehlung := "Hier ist nichts zu tun. Mehr geben diese Riegel nicht her, " +
+			"ohne sie über ihre Vorgabe hinaus zu betreiben."
+		if jedecTakt > 0 && istTakt > jedecTakt {
+			empfehlung = fmt.Sprintf(
+				"Ohne Speicherprofil würden sie mit %d MT/s laufen, dein Mainboard hat "+
+					"also mehr eingestellt: XMP, EXPO oder D.O.C.P. ist an, oder jemand "+
+					"hat von Hand nachgeholfen. Hier ist nichts zu tun.",
+				jedecTakt)
+		}
+		befunde = append(befunde, Befund{
+			Schwere:      Bestaetigung,
+			Titel:        "Der Arbeitsspeicher läuft auf Sollgeschwindigkeit",
+			Feststellung: feststellung,
+			Empfehlung:   empfehlung,
 		})
 	}
 
