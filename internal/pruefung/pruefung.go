@@ -243,9 +243,61 @@ func Speicher(riegel []Riegel) []Befund {
 			}
 		}
 	}
+	/*
+	 * SONDERFALL: Windows meldet fast genau die HAELFTE.
+	 *
+	 * Ergaenzt am 29.08.2026 nach Durchsicht fremder Foren-Faeden. In
+	 * mehreren dokumentierten Faellen zeigte Windows den Speichertakt
+	 * halbiert an (1600 statt 3200), waehrend CPU-Z den richtigen Wert
+	 * meldete. Der Grund ist die alte Verwechslung von MHz und MT/s: DDR
+	 * uebertraegt zweimal je Takt, 3200 MT/s sind 1600 MHz. Microsoft hat
+	 * die Beschriftung im Task-Manager deshalb 2024 von "MHz" auf "MT/s"
+	 * geaendert, das Grundproblem gibt es aber weiter.
+	 *
+	 * Ohne diesen Zweig haette das Programm daraus einen sehr lauten
+	 * Befund gemacht: "Deine Riegel sind fuer 3200 gebaut, laufen aber mit
+	 * 1600, rund 100 Prozent mehr waeren drin." Bei jemandem, dessen
+	 * Speicher voellig richtig laeuft. Also genau die Sorte Falschalarm,
+	 * die dieses Programm schon zweimal blamiert hat.
+	 *
+	 * BEWUSST NICHT UNTERDRUECKT, sondern anders formuliert: Ein Riegel
+	 * KANN wirklich mit der halben Rate laufen, DDR4-1600 gibt es. Beide
+	 * Faelle sehen von hier aus identisch aus. Deshalb nennt der Befund
+	 * beide Moeglichkeiten und die eine Messung, die sie unterscheidet,
+	 * statt sich fuer eine zu entscheiden.
+	 */
+	// Kein frueher Ausstieg: Die Pruefungen auf Einkanalbetrieb und
+	// gemischte Riegel weiter unten muessen trotzdem laufen.
+	halbeRate := false
+	if sollTakt > 0 && istTakt > 0 {
+		verhaeltnis := float64(istTakt) / float64(sollTakt)
+		if verhaeltnis >= 0.45 && verhaeltnis <= 0.55 {
+			halbeRate = true
+			befunde = append(befunde, Befund{
+				Schwere: Hinweis,
+				Titel:   "Windows meldet genau den halben Speichertakt",
+				Feststellung: fmt.Sprintf(
+					"Deine Riegel sind für %d MT/s gebaut, Windows meldet %d MT/s. "+
+						"Das ist fast exakt die Hälfte, und das hat erfahrungsgemäß "+
+						"zwei mögliche Gründe.",
+					sollTakt, istTakt),
+				Empfehlung: "Entweder zählt Windows hier die reine Taktrate statt der " +
+					"Übertragungen pro Sekunde. Speicher überträgt zweimal je Takt, " +
+					"aus 3200 werden dann 1600, und in dem Fall ist alles in Ordnung. " +
+					"Oder dein Speicher läuft wirklich halb so schnell. " +
+					gegenpruefung + " Zeigt CPU-Z nach der Verdopplung den vollen Wert, " +
+					"ist alles gut und du kannst das hier vergessen. Zeigt es denselben " +
+					"halben Wert, schalte im BIOS das Speicherprofil ein: bei Intel XMP, " +
+					"bei AMD EXPO oder D.O.C.P.",
+			})
+		}
+	}
+
 	// 5 Prozent Abstand, damit kleine Abweichungen (2133 gegen 2132)
-	// keinen Befund auslösen.
-	if sollTakt > 0 && istTakt > 0 && float64(istTakt) < float64(sollTakt)*0.95 {
+	// keinen Befund auslösen. Nicht bei halber Rate: Dazu steht oben
+	// bereits ein Befund, und zwei Meldungen zur selben Zahl, die
+	// verschiedene Dinge behaupten, sind schlimmer als eine.
+	if !halbeRate && sollTakt > 0 && istTakt > 0 && float64(istTakt) < float64(sollTakt)*0.95 {
 		/*
 		 * Die Zahl muss als GEWINN formuliert sein, nicht als Verlust.
 		 *

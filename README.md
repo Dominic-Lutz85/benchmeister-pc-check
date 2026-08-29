@@ -69,6 +69,28 @@ Repository. Offen ist genau das, was auf fremden Rechnern läuft.
 Der letzte Punkt lässt sich mit einer Firewall nachprüfen, und dazu wird
 ausdrücklich eingeladen.
 
+### Ein Wert wird aus der Registry gelesen
+
+Der Vollständigkeit halber, weil oben "keine Registry-Einträge" steht und
+das eine Zusage über das Schreiben ist: Seit 1.0.6 wird **ein** Wert aus
+der Registry **gelesen**, und zwar
+
+```
+HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\<NNNN>
+    DriverDesc                        (Name der Grafikkarte)
+    HardwareInformation.qwMemorySize  (Größe des Grafikspeichers)
+```
+
+Grund: `Win32_VideoController.AdapterRAM` ist ein 32-Bit-Feld und kann
+keine 4 GB fassen. Jede halbwegs aktuelle Karte meldet dort deshalb
+Unsinn, und das Programm schrieb bis dahin "von Windows nicht
+zuverlässig gemeldet", auch bei einer Karte mit 16 GB. Der Treiber legt
+die richtige Größe daneben in seinem eigenen Schlüssel ab.
+
+Es wird nichts angelegt, nichts geändert und nichts gelöscht.
+Administratorrechte braucht es dafür nicht. Der Code steht in
+`internal/scan/scan.go`, Funktion `grafikspeicherAusRegistry`.
+
 ## Welche Daten erfasst werden
 
 | Erfasst | Nicht erfasst |

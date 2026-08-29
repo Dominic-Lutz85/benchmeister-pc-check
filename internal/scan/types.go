@@ -134,8 +134,41 @@ func (r RiegelInfo) IstTaktMhz() uint32 {
 
 // LaufwerkInfo ist ein Datentraeger, nur zur lokalen Anzeige.
 type LaufwerkInfo struct {
-	Name      string
+	Name string
+	// MSFT_PhysicalDisk.MediaType: 0 = unbekannt, 3 = HDD, 4 = SSD.
+	// NICHT direkt auswerten, sondern ueber Medienart(), siehe dort.
 	MedienArt uint16
-	BusArt    uint16
-	Bytes     uint64
+	// MSFT_PhysicalDisk.BusType: 7 = USB, 11 = SATA, 17 = NVMe.
+	BusArt uint16
+	Bytes  uint64
+}
+
+// Medienart liefert die Art des Datentraegers und repariert dabei einen
+// haeufigen Fall, in dem Windows sie gar nicht meldet.
+//
+// DAS PROBLEM: MSFT_PhysicalDisk.MediaType ist auf vielen Rechnern 0,
+// also "unspecified". Das passiert vor allem bei NVMe-SSDs hinter
+// bestimmten Treibern und Controllern und ist in Microsofts eigenen
+// Foren seit Jahren dokumentiert. Ohne die Regel unten stand in der
+// Uebersicht dann "Art unbekannt im M.2-Steckplatz (NVMe)", und in der
+// Uebertragung landete "unbekannt" als Laufwerksart.
+//
+// DIE REGEL: Was per NVMe angebunden ist, IST eine SSD. NVMe ist ein
+// Protokoll fuer Flash-Speicher, eine Magnetplatte spricht es nicht.
+// Das ist keine Schaetzung, sondern folgt aus dem Anschluss selbst.
+//
+// Umgekehrt wird NICHT geraten: Ein Datentraeger am SATA-Anschluss ohne
+// MediaType bleibt unbekannt, dort haengen Platten wie SSDs.
+//
+// Ergaenzt am 29.08.2026 bei der Durchsicht vor 1.0.6.
+func (l LaufwerkInfo) Medienart() uint16 {
+	const (
+		unbekannt = 0
+		ssd       = 4
+		nvme      = 17
+	)
+	if l.MedienArt == unbekannt && l.BusArt == nvme {
+		return ssd
+	}
+	return l.MedienArt
 }

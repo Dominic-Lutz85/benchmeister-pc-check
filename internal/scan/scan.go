@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/yusufpapurcu/wmi"
+	"golang.org/x/sys/windows/registry"
 )
 
 // Die WMI-Strukturen unten enthalten bewusst NUR die Felder, die wir
@@ -158,13 +159,89 @@ func grafikkarte(e *ScanResult) error {
 	// aus dem eigenen Katalog. Lieber keine Angabe als eine falsche.
 	const gedeckelt = uint32(4095) * 1024 * 1024
 	if gewaehlt.AdapterRAM > 0 && gewaehlt.AdapterRAM < gedeckelt {
-		gb := int(gewaehlt.AdapterRAM / (1024 * 1024 * 1024))
-		if gb > 0 {
+		if gb := aufGanzeGb(uint64(gewaehlt.AdapterRAM)); gb > 0 {
+			e.GPUVramGb = &gb
+		}
+	}
+
+	// Rueckfall ueber die Registry, wenn WMI nichts Brauchbares liefert.
+	// Betrifft JEDE Karte mit 4 GB oder mehr, also praktisch jede aktuelle.
+	// Auf dem Entwicklungsrechner selbst stand deshalb bei einer RTX 5060
+	// Ti "von Windows nicht zuverlaessig gemeldet", waehrend die Karte 16
+	// GB hat. Ergaenzt am 29.08.2026.
+	if e.GPUVramGb == nil {
+		if gb := grafikspeicherAusRegistry(e.GPUName); gb > 0 {
 			e.GPUVramGb = &gb
 		}
 	}
 
 	return nil
+}
+
+// aufGanzeGb rundet Bytes auf ganze Gigabyte, statt abzuschneiden.
+//
+// Das ist kein Schoenheitsfehler: Der Registry-Wert ist die tatsaechlich
+// nutzbare Groesse und liegt knapp unter der runden Zahl. Eine 16-GB-
+// Karte meldet 17103323136 Bytes, also 15,93 GiB. Abschneiden haette
+// daraus "15 GB" gemacht, und eine Karte, die es so nie gab.
+func aufGanzeGb(bytes uint64) int {
+	const gb = uint64(1024 * 1024 * 1024)
+	return int((bytes + gb/2) / gb)
+}
+
+/*
+ * Liest die echte Groesse des Grafikspeichers aus der Registry.
+ *
+ * WARUM UEBERHAUPT: Win32_VideoController.AdapterRAM ist ein 32-Bit-Feld
+ * und kann keine 4 GB fassen. Jede aktuelle Karte meldet dort deshalb
+ * einen gedeckelten Unsinnswert. Der Treiber legt die richtige Groesse
+ * daneben als 64-Bit-Wert in seinem eigenen Registry-Schluessel ab.
+ *
+ * WIRD HIER NUR GELESEN, NICHTS GESCHRIEBEN. Die Zusage des Programms
+ * lautet "keine Eintraege in der Registry", und die bleibt unberuehrt:
+ * Es wird ein einziger vorhandener Wert gelesen, nichts angelegt,
+ * nichts geaendert, nichts geloescht. Adminrechte braucht es dafuer
+ * nicht, der Schluessel ist fuer alle lesbar. Der Vollstaendigkeit
+ * halber steht das auch im README.
+ *
+ * Die Zuordnung laeuft ueber DriverDesc, also den Kartennamen, den auch
+ * WMI liefert. Ohne diesen Abgleich bekaeme ein Notebook mit zwei
+ * Grafikeinheiten den Speicher der falschen Karte zugeschrieben.
+ * Passt kein Eintrag, gibt es lieber gar keine Angabe.
+ */
+func grafikspeicherAusRegistry(name string) int {
+	const pfad = `SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}`
+
+	klasse, err := registry.OpenKey(registry.LOCAL_MACHINE, pfad, registry.READ)
+	if err != nil {
+		return 0
+	}
+	defer klasse.Close()
+
+	unterschluessel, err := klasse.ReadSubKeyNames(-1)
+	if err != nil {
+		return 0
+	}
+
+	gesucht := strings.TrimSpace(name)
+	for _, s := range unterschluessel {
+		eintrag, err := registry.OpenKey(klasse, s, registry.QUERY_VALUE)
+		if err != nil {
+			continue
+		}
+		bezeichnung, _, err := eintrag.GetStringValue("DriverDesc")
+		if err != nil || !strings.EqualFold(strings.TrimSpace(bezeichnung), gesucht) {
+			eintrag.Close()
+			continue
+		}
+		groesse, _, err := eintrag.GetIntegerValue("HardwareInformation.qwMemorySize")
+		eintrag.Close()
+		if err != nil || groesse == 0 {
+			continue
+		}
+		return aufGanzeGb(groesse)
+	}
+	return 0
 }
 
 func arbeitsspeicher(e *ScanResult) {
@@ -237,7 +314,11 @@ func laufwerk(e *ScanResult) {
 			}
 		}
 
-		switch groesstes.MediaType {
+		// Ueber LaufwerkInfo.Medienart statt direkt ueber MediaType, damit
+		// eine NVMe-SSD, deren Art Windows nicht meldet, hier nicht als
+		// "unbekannt" landet. Begruendung an der Methode in types.go.
+		art := LaufwerkInfo{MedienArt: groesstes.MediaType, BusArt: groesstes.BusType}.Medienart()
+		switch art {
 		case 3:
 			e.StorageType = "HDD"
 		case 4:

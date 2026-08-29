@@ -260,3 +260,76 @@ func TestTaktbefundNenntDieGegenpruefung(t *testing.T) {
 		t.Error("der Befund darf den Ist-Takt nicht als Tatsache behaupten, wir kennen ihn nicht sicher")
 	}
 }
+
+/*
+ * Der Halbe-Rate-Fall, gefunden bei der Durchsicht fremder Foren am
+ * 29.08.2026: Windows meldet den Speichertakt auf manchen Rechnern
+ * halbiert (1600 statt 3200), waehrend CPU-Z den vollen Wert zeigt.
+ * Ohne Sonderbehandlung haette das Programm daraus einen sehr lauten,
+ * sehr falschen Befund gemacht.
+ */
+func TestSpeicherHalbeRate(t *testing.T) {
+	// CMK32GX4M2E3200C16 heisst Soll 3200.
+	const teil = "CMK32GX4M2E3200C16"
+
+	faelle := []struct {
+		name          string
+		ist           uint32
+		halbeErwartet bool
+		zuLangsamErw  bool
+	}{
+		{"genau die Haelfte", 1600, true, false},
+		{"knapp neben der Haelfte", 1700, true, false},
+		{"deutlich drunter, aber nicht die Haelfte", 1200, false, true},
+		{"echter XMP-Fall", 2133, false, true},
+		{"alles in Ordnung", 3200, false, false},
+	}
+
+	for _, f := range faelle {
+		t.Run(f.name, func(t *testing.T) {
+			befunde := Speicher([]Riegel{
+				{TaktMhzZweiter: f.ist, Teilenummer: teil},
+				{TaktMhzZweiter: f.ist, Teilenummer: teil},
+			})
+
+			var halbe, zuLangsam bool
+			for _, b := range befunde {
+				switch b.Titel {
+				case "Windows meldet genau den halben Speichertakt":
+					halbe = true
+				case "Arbeitsspeicher läuft womöglich unter seiner Sollgeschwindigkeit":
+					zuLangsam = true
+				}
+			}
+			if halbe != f.halbeErwartet {
+				t.Errorf("Halbe-Rate-Befund: %v erwartet, %v bekommen", f.halbeErwartet, halbe)
+			}
+			if zuLangsam != f.zuLangsamErw {
+				t.Errorf("Zu-langsam-Befund: %v erwartet, %v bekommen", f.zuLangsamErw, zuLangsam)
+			}
+			// Nie beide gleichzeitig: Zwei Meldungen zur selben Zahl, die
+			// Verschiedenes behaupten, sind schlimmer als eine.
+			if halbe && zuLangsam {
+				t.Error("beide Takt-Befunde gleichzeitig, das widerspricht sich")
+			}
+		})
+	}
+}
+
+// Der Sonderfall darf die uebrigen Pruefungen nicht verschlucken. Das
+// waere beim ersten Entwurf beinahe passiert, dort stand ein return.
+func TestHalbeRateVerschlucktDenRestNicht(t *testing.T) {
+	befunde := Speicher([]Riegel{
+		{TaktMhzZweiter: 1600, Teilenummer: "CMK32GX4M2E3200C16"},
+	})
+
+	var einRiegel bool
+	for _, b := range befunde {
+		if b.Titel == "Nur ein Speicherriegel verbaut" {
+			einRiegel = true
+		}
+	}
+	if !einRiegel {
+		t.Error("Der Einkanal-Befund fehlt, der Sonderfall hat ihn verschluckt")
+	}
+}

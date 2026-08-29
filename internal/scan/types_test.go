@@ -40,3 +40,67 @@ func TestIstTaktMhz(t *testing.T) {
 		})
 	}
 }
+
+func TestMedienart(t *testing.T) {
+	const (
+		unbekannt = 0
+		hdd       = 3
+		ssd       = 4
+		usb       = 7
+		sata      = 11
+		nvme      = 17
+	)
+
+	faelle := []struct {
+		name    string
+		art     uint16
+		bus     uint16
+		erwartt uint16
+	}{
+		// Der eigentliche Anlass: Windows meldet bei NVMe-SSDs haeufig
+		// gar keine Art. Der Anschluss beweist sie trotzdem.
+		{"NVMe ohne Angabe ist eine SSD", unbekannt, nvme, ssd},
+		{"NVMe mit Angabe bleibt SSD", ssd, nvme, ssd},
+		// Am SATA-Anschluss haengen Platten wie SSDs. Hier wird bewusst
+		// nicht geraten.
+		{"SATA ohne Angabe bleibt unbekannt", unbekannt, sata, unbekannt},
+		{"SATA-SSD bleibt SSD", ssd, sata, ssd},
+		{"Festplatte bleibt Festplatte", hdd, sata, hdd},
+		{"USB ohne Angabe bleibt unbekannt", unbekannt, usb, unbekannt},
+	}
+
+	for _, f := range faelle {
+		t.Run(f.name, func(t *testing.T) {
+			l := LaufwerkInfo{MedienArt: f.art, BusArt: f.bus}
+			if got := l.Medienart(); got != f.erwartt {
+				t.Errorf("MediaType %d am Bus %d: %d erwartet, %d bekommen",
+					f.art, f.bus, f.erwartt, got)
+			}
+		})
+	}
+}
+
+func TestAufGanzeGb(t *testing.T) {
+	faelle := []struct {
+		name    string
+		bytes   uint64
+		erwartt int
+	}{
+		// Der echte Registry-Wert einer RTX 5060 Ti mit 16 GB, auf dem
+		// Entwicklungsrechner ausgelesen. Abschneiden haette 15 ergeben.
+		{"16-GB-Karte, echter Wert", 17103323136, 16},
+		// Typischer Wert einer 8-GB-Karte, ebenfalls knapp darunter.
+		{"8-GB-Karte, knapp drunter", 8585740288, 8},
+		{"glatte 4 GB", 4 * 1024 * 1024 * 1024, 4},
+		{"glatte 2 GB", 2 * 1024 * 1024 * 1024, 2},
+		{"nichts gemeldet", 0, 0},
+	}
+
+	for _, f := range faelle {
+		t.Run(f.name, func(t *testing.T) {
+			if got := aufGanzeGb(f.bytes); got != f.erwartt {
+				t.Errorf("%d Bytes: %d GB erwartet, %d bekommen", f.bytes, f.erwartt, got)
+			}
+		})
+	}
+}

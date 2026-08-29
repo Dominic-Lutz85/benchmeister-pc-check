@@ -91,8 +91,10 @@ func laufwerksZeilen(e *scan.ScanResult) []LaufwerkZeile {
 			name = "Unbenanntes Laufwerk"
 		}
 
+		// Medienart() statt l.MedienArt: repariert NVMe-SSDs, deren Art
+		// Windows als "unspecified" meldet. Siehe scan/types.go.
 		var art string
-		switch l.MedienArt {
+		switch l.Medienart() {
 		case 3:
 			art = "Festplatte"
 		case 4:
@@ -455,8 +457,12 @@ func laufwerkeFuerPruefung(e *scan.ScanResult) []pruefung.Laufwerk {
 	aus := make([]pruefung.Laufwerk, 0, len(e.Laufwerke))
 	for _, l := range e.Laufwerke {
 		aus = append(aus, pruefung.Laufwerk{
-			Name:      l.Name,
-			MedienArt: l.MedienArt,
+			Name: l.Name,
+			// Medienart() statt l.MedienArt, damit die Pruefung dieselbe
+			// Art sieht wie die Anzeige darueber. Sonst haette eine als
+			// "unspecified" gemeldete SATA-SSD in der Uebersicht anders
+			// dagestanden als im Befund.
+			MedienArt: l.Medienart(),
 			BusArt:    l.BusArt,
 			Bytes:     l.Bytes,
 		})
