@@ -420,12 +420,30 @@ func imBrowserOeffnen(adresse string) {
 
 // Die beiden Umwandler halten scan und pruefung voneinander unabhaengig:
 // Das Auslese-Paket muss nichts ueber die Pruefung wissen und umgekehrt.
+//
+// ACHTUNG BEIM ERGAENZEN VON FELDERN. Genau hier ist der Fix von 1.0.5
+// verendet: Das Auslesen holte ConfiguredClockSpeed korrekt, die
+// Pruefung wertete es korrekt aus, aber dieser Umwandler dazwischen
+// kopierte es nicht mit. TaktMhzZweiter blieb damit immer 0, der
+// Rueckfall auf Speed griff jedes Mal, und das Programm meldete
+// weiterhin den JEDEC-Grundtakt als Ist-Wert.
+//
+// Aufgefallen am 29.08.2026 an einem Screenshot von Misanthrop68 im
+// PCGH-Forum: CMK32GX5M2B5200C40, Speed 4800, ConfiguredClockSpeed
+// 5600. Sein Speicher lief also sogar ueber dem Profil, das Programm
+// behauptete trotzdem 4800 und riet ihm, XMP einzuschalten.
+//
+// Die Lehre: Ein stiller Umwandler ist die gefaehrlichste Sorte Code.
+// Er bricht nichts, er laesst nur etwas weg, und der Fehler sieht
+// danach genau so aus wie vor der Reparatur. Der Test in
+// server_test.go haelt diese Stelle jetzt fest.
 func riegelFuerPruefung(e *scan.ScanResult) []pruefung.Riegel {
 	aus := make([]pruefung.Riegel, 0, len(e.Riegel))
 	for _, r := range e.Riegel {
 		aus = append(aus, pruefung.Riegel{
 			KapazitaetBytes: r.KapazitaetBytes,
 			TaktMhz:         r.TaktMhz,
+			TaktMhzZweiter:  r.TaktMhzZweiter,
 			Teilenummer:     r.Teilenummer,
 			Kanal:           r.Kanal,
 		})
