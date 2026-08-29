@@ -185,47 +185,46 @@ func Speicher(riegel []Riegel) []Befund {
 	// vom Prozessor vorgegebenen Grundgeschwindigkeit. Sehr viele Rechner
 	// laufen jahrelang so, ohne dass es jemandem auffällt.
 	//
-	// ACHTUNG, teuer erkaufte Erkenntnis vom 28.08.2026: Windows weiß den
-	// Ist-Takt gar nicht sicher. Beide Taktfelder stammen aus SMBIOS Typ
-	// 17, und was dort steht, trägt das BIOS des Boards ein. Manche tragen
-	// den JEDEC-Grundtakt ein (DDR5: 4800), auch wenn der Speicher längst
-	// schneller läuft. Ein Moderator im PCGH-Forum hatte genau das: real
-	// 5600 MT/s, Windows meldete 4800, und dieses Programm behauptete
-	// daraufhin, sein Speicher liefe zu langsam.
+	// WELCHES FELD DEN IST-TAKT ENTHAELT, korrigiert am 29.08.2026.
 	//
-	// Zwei Konsequenzen, beide hier umgesetzt:
-	//  1. Widersprechen sich die beiden Taktfelder, gibt es gar keinen
-	//     Befund. Lieber schweigen als raten, wie überall in dieser Datei.
-	//  2. Der Befund behauptet nichts mehr, sondern sagt, was Windows
-	//     meldet, und nennt den Weg zum Gegenprüfen.
+	// Am 28.08. meldete ein Moderator im PCGH-Forum einen Fehlalarm: Sein
+	// Speicher lief mit 5600 MT/s, dieses Programm behauptete 4800. Die
+	// erste Reparatur war, bei widerspruechlichen Feldern gar nichts mehr
+	// zu sagen. Das war fachlich falsch, und ein Nutzer (NullPointerEx)
+	// hat im selben Faden erklaert warum:
+	//
+	//   Speed                = hoechster nativer JEDEC-Takt, OHNE Profil
+	//   ConfiguredClockSpeed = der reale Takt, wie das BIOS ihn eingestellt
+	//                          hat (XMP, EXPO, manuell)
+	//
+	// Ein Unterschied zwischen beiden ist also kein Widerspruch, sondern
+	// der NORMALFALL bei aktivem Profil: Speed 4800 und
+	// ConfiguredClockSpeed 6400 heisst schlicht "XMP laeuft". Die alte
+	// Fassung antwortete ausgerechnet dann "ich weiss es nicht", wenn die
+	// Daten eindeutig waren, und war damit fuer Einsteiger wertlos.
+	//
+	// Richtig ist: ConfiguredClockSpeed nehmen, wenn vorhanden, sonst
+	// Speed als Rueckfall. Der Rest bleibt wie gehabt der Abgleich gegen
+	// die Teilenummer.
+	//
+	// Was bleibt: Verlassen kann man sich auf keines der Felder blind.
+	// Was in SMBIOS Typ 17 landet, entscheidet das BIOS des Boards, und
+	// manche ueberschreiben Speed mit dem konfigurierten Wert. Deshalb
+	// nennt der Befund weiterhin den Weg zum Gegenpruefen.
+	// ConfiguredClockSpeed hat Vorrang, Speed ist nur der Rückfall.
+	// Begründung siehe der grosse Kommentarblock oben.
 	var istTakt uint32
 	for _, r := range riegel {
-		if r.TaktMhz > 0 && (istTakt == 0 || r.TaktMhz < istTakt) {
-			istTakt = r.TaktMhz
+		takt := r.TaktMhzZweiter
+		if takt == 0 {
+			takt = r.TaktMhz
+		}
+		// Bei gemischten Riegeln zählt der langsamste, mit dem läuft alles.
+		if takt > 0 && (istTakt == 0 || takt < istTakt) {
+			istTakt = takt
 		}
 	}
-	var zweiterTakt uint32
-	for _, r := range riegel {
-		if r.TaktMhzZweiter > 0 && (zweiterTakt == 0 || r.TaktMhzZweiter < zweiterTakt) {
-			zweiterTakt = r.TaktMhzZweiter
-		}
-	}
-	// Uneinigkeit zwischen den beiden Feldern heißt: Wir wissen es nicht.
-	// Dann verschweigen wir es nicht, wir sagen es. Die übrigen
-	// Speicherprüfungen laufen weiter, die hängen nicht am Takt.
-	taktUnklar := istTakt > 0 && zweiterTakt > 0 && istTakt != zweiterTakt
-	if taktUnklar {
-		befunde = append(befunde, Befund{
-			Schwere: Anmerkung,
-			Titel:   "Zum Speichertakt sage ich lieber nichts",
-			Feststellung: fmt.Sprintf(
-				"Windows meldet für deinen Speicher zwei verschiedene Geschwindigkeiten "+
-					"(%d und %d MT/s). Welche stimmt, kann ich von hier aus nicht "+
-					"entscheiden, also behaupte ich es auch nicht.",
-				istTakt, zweiterTakt),
-			Empfehlung: gegenpruefung,
-		})
-	}
+
 	sollTakt := 0
 	for _, r := range riegel {
 		// Der niedrigste Soll-Wert zählt: Bei gemischten Riegeln läuft
@@ -238,7 +237,7 @@ func Speicher(riegel []Riegel) []Befund {
 	}
 	// 5 Prozent Abstand, damit kleine Abweichungen (2133 gegen 2132)
 	// keinen Befund auslösen.
-	if !taktUnklar && sollTakt > 0 && istTakt > 0 && float64(istTakt) < float64(sollTakt)*0.95 {
+	if sollTakt > 0 && istTakt > 0 && float64(istTakt) < float64(sollTakt)*0.95 {
 		/*
 		 * Die Zahl muss als GEWINN formuliert sein, nicht als Verlust.
 		 *
@@ -328,10 +327,15 @@ func Laufwerke(laufwerke []Laufwerk) []Befund {
 				// ohne Wissen um den Verwendungszweck keiner ist. Für
 				// Sicherungen und Archive ist eine Festplatte genau
 				// richtig, und das muss dastehen.
-				Empfehlung: "Falls Windows darauf liegt: Der Umzug auf eine SSD ist die " +
-					"spürbarste Aufrüstung überhaupt, deutlich mehr als ein schnellerer " +
-					"Prozessor. Liegen dort nur Daten, Sicherungen oder Archive, ist alles " +
-					"in Ordnung. Genau dafür ist eine Festplatte gedacht, dann ignorier das hier.",
+				// Formulierung am 29.08.2026 nach einem Vorschlag von
+				// "Misanthrop68" im PCGH-Forum geschaerft: Erst sagen, wofuer
+				// die Platte NICHT taugt, dann wofuer sie weiterhin gut ist.
+				// Vorher stand die Entwarnung hinten und wurde ueberlesen.
+				Empfehlung: "Für Windows und Programme ist eine Festplatte heute keine gute " +
+					"Grundlage mehr, dort kostet sie bei jedem Start und jedem Ladebildschirm " +
+					"Zeit. Für Sicherungen, Archive, Fotos und Musik ist sie dagegen völlig in " +
+					"Ordnung und pro Terabyte konkurrenzlos günstig. Liegt dein System auf einer " +
+					"SSD und hier nur der Datenkeller, ist alles richtig, dann ignorier das hier.",
 			})
 			continue
 		}
@@ -347,11 +351,16 @@ func Laufwerke(laufwerke []Laufwerk) []Befund {
 				// Vorher las sich der Befund, als könne man die Platte
 				// einfach umstecken, was bei verschiedenen Bauformen
 				// natürlich nicht geht. PCGH-Rückmeldung vom 28.08.2026.
-				Empfehlung: "Umstecken geht nicht, das sind zwei verschiedene Bauformen, " +
-					"es liefe also auf eine neue SSD hinaus. Und ehrlich: Im Alltag merkt " +
-					"man davon kaum etwas, das ist etwas ganz anderes als der Sprung von " +
-					"Festplatte auf SSD. Nur wer regelmäßig sehr große Dateien schaufelt, " +
-					"spürt den Unterschied wirklich. Sonst: so lassen.",
+				// Ebenfalls nach dem Vorschlag von "Misanthrop68" (29.08.2026):
+				// Der Hinweis soll klar sagen, dass es KEINEN Grund zum Handeln
+				// gibt, und den einen Zeitpunkt nennen, an dem es sich lohnt.
+				Empfehlung: "Umstecken geht nicht, SATA und M.2 sind zwei verschiedene " +
+					"Bauformen, es liefe also auf eine neue SSD hinaus. Einen Grund dafür " +
+					"gibt es gerade nicht: Im Alltag merkt man den Unterschied kaum, das ist " +
+					"etwas ganz anderes als der Sprung von Festplatte auf SSD. Lohnend wird " +
+					"es erst, wenn diese SSD ohnehin ersetzt wird, weil sie defekt oder zu " +
+					"klein ist. Dann lieber gleich eine M.2, die ist schneller und braucht " +
+					"keinen Platz im Gehäuse.",
 			})
 		}
 	}

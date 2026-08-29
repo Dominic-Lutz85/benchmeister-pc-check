@@ -88,7 +88,24 @@
       <tr><th>Arbeitsspeicher</th><td>
         {{.Scan.RamTotalGb}} GB{{if .Scan.RamSpeedMhz}}, {{.Scan.RamSpeedMhz}} MHz{{end}}
       </td></tr>
+      {{/* Alle Laufwerke einzeln, nicht nur das groesste. Bis 29.08.2026
+           stand hier nur StorageType und StorageCapacityGb, und das
+           beschreibt allein den groessten Datentraeger. Ein Moderator im
+           PCGH-Forum hatte deshalb fuenf Laufwerke im Rechner und sah nur
+           eines, ausgerechnet die 3-TB-Festplatte, waehrend die Befunde
+           darunter sehr wohl von seinen SSDs sprachen. Das sah aus, als
+           wuerde das Programm sich selbst widersprechen.
+           Die Angaben lagen schon vor, sie wurden nur nicht gezeigt. */}}
+      {{if .Laufwerke}}
+      {{range $i, $l := .Laufwerke}}
+      <tr>
+        <th>{{if eq $i 0}}Laufwerke{{end}}</th>
+        <td>{{$l.Beschriftung}}</td>
+      </tr>
+      {{end}}
+      {{else}}
       <tr><th>Laufwerk</th><td>{{.Scan.StorageType}}, {{.Scan.StorageCapacityGb}} GB</td></tr>
+      {{end}}
       <tr><th>Auflösung</th><td>{{.Scan.ResolutionWidth}} × {{.Scan.ResolutionHeight}}</td></tr>
       {{if .Scan.MainboardName}}
       <tr><th>Mainboard</th><td>{{.Scan.MainboardName}} <span class="nichts">(nur hier, wird nicht übertragen)</span></td></tr>

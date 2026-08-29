@@ -25,6 +25,7 @@ import (
 	"net"
 	"net/http"
 	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -60,6 +61,63 @@ type vorlagenDaten struct {
 	// siehe Begruendung in preview.html.tmpl.
 	Kostenlos       []pruefung.Befund
 	Kostenpflichtig []pruefung.Befund
+	// Alle Datentraeger als fertige Zeilen fuer die Hardware-Uebersicht.
+	Laufwerke []LaufwerkZeile
+}
+
+// LaufwerkZeile ist ein Datentraeger, fertig beschriftet fuer die Anzeige.
+type LaufwerkZeile struct {
+	Beschriftung string
+}
+
+/*
+ * Baut die Zeilen fuer die Laufwerks-Uebersicht.
+ *
+ * Ergaenzt am 29.08.2026 nach einer Rueckmeldung im PCGH-Forum: Dort
+ * hatte jemand fuenf Datentraeger im Rechner und sah in der Uebersicht
+ * nur einen, ausgerechnet die 3-TB-Festplatte. Grund war, dass die
+ * Uebersicht bis dahin nur StorageType und StorageCapacityGb zeigte, und
+ * die beschreiben allein den GROESSTEN Datentraeger (siehe
+ * scan/scan.go). Die Befunde darunter sprachen sehr wohl von seinen
+ * SSDs, das Programm schien sich also selbst zu widersprechen.
+ *
+ * Die Angaben lagen die ganze Zeit vor, sie wurden nur nicht gezeigt.
+ */
+func laufwerksZeilen(e *scan.ScanResult) []LaufwerkZeile {
+	zeilen := make([]LaufwerkZeile, 0, len(e.Laufwerke))
+	for _, l := range e.Laufwerke {
+		name := strings.TrimSpace(l.Name)
+		if name == "" {
+			name = "Unbenanntes Laufwerk"
+		}
+
+		var art string
+		switch l.MedienArt {
+		case 3:
+			art = "Festplatte"
+		case 4:
+			art = "SSD"
+		default:
+			art = "Art unbekannt"
+		}
+
+		// Der Anschluss steht nur dann dabei, wenn er etwas aussagt. "SSD
+		// am SATA" ist eine Information, "SSD am Bus 0" waere Rauschen.
+		switch l.BusArt {
+		case 11:
+			art += " am SATA-Anschluss"
+		case 17:
+			art += " im M.2-Steckplatz (NVMe)"
+		case 7:
+			art = "USB-Laufwerk"
+		}
+
+		gb := l.Bytes / (1000 * 1000 * 1000)
+		zeilen = append(zeilen, LaufwerkZeile{
+			Beschriftung: fmt.Sprintf("%s, %d GB, %s", name, gb, art),
+		})
+	}
+	return zeilen
 }
 
 // nachKosten teilt die Befunde in die beiden Anzeigebloecke.
@@ -197,6 +255,7 @@ func Anzeigen(ergebnis *scan.ScanResult) (string, error) {
 			Befunde:         befunde,
 			Kostenlos:       kostenlos,
 			Kostenpflichtig: kostenpflichtig,
+			Laufwerke:       laufwerksZeilen(ergebnis),
 		})
 	})
 

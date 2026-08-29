@@ -141,44 +141,84 @@ func TestLaufwerksbefundeSindZukauf(t *testing.T) {
 	}
 }
 
-// DER FALL, DER DAS GANZE AUSGELOEST HAT.
+// DER FALL, DER DAS GANZE AUSGELOEST HAT, und die Korrektur dazu.
 //
-// Ein Moderator im PCGH-Forum meldete am 28.08.2026: Sein Speicher lief
-// nachweislich mit 5600 MT/s, das Programm behauptete 4800 und riet ihm,
-// das Speicherprofil einzuschalten, das laengst an war. Windows meldete
-// in Speed den JEDEC-Grundtakt fuer DDR5 statt des Ist-Werts.
+// Am 28.08.2026 meldete ein Moderator im PCGH-Forum einen Fehlalarm:
+// Sein Speicher lief mit 5600 MT/s, das Programm behauptete 4800.
 //
-// Widersprechen sich die beiden Taktfelder, darf kein Takt-Befund mehr
-// herauskommen. Die Teilenummer ist bewusst erfunden und als solche
-// erkennbar: Seine echte kennen wir nicht, und eine geratene echte waere
-// genau die Sorte Halbwissen, gegen die dieses Projekt antritt.
-func TestWidersprechendeTaktfelderErzeugenKeinenFehlalarm(t *testing.T) {
+// Die erste Reparatur war, bei unterschiedlichen Taktfeldern gar nichts
+// mehr zu sagen. Das war fachlich falsch. Ein Nutzer (NullPointerEx) hat
+// im selben Faden erklaert, dass die beiden Felder gar nicht dasselbe
+// meinen: Speed ist der JEDEC-Grundtakt OHNE Profil,
+// ConfiguredClockSpeed der real eingestellte. Ein Unterschied ist also
+// kein Widerspruch, sondern der Normalfall bei aktivem XMP.
+//
+// Seit 29.08.2026 gilt deshalb: ConfiguredClockSpeed zaehlt, Speed ist
+// nur der Rueckfall.
+func TestAktivesProfilErzeugtKeinenFehlalarm(t *testing.T) {
+	// Genau der Fall aus dem Forum: JEDEC 4800, tatsaechlich 5600, und
+	// die Teilenummer nennt 5200. Der Speicher laeuft ueber seinem
+	// Profil, es darf also KEIN Hinweis kommen.
 	riegel := []Riegel{
 		{KapazitaetBytes: 17179869184, TaktMhz: 4800, TaktMhzZweiter: 5600,
 			Teilenummer: "TESTKIT5200C40", Kanal: "A"},
 		{KapazitaetBytes: 17179869184, TaktMhz: 4800, TaktMhzZweiter: 5600,
 			Teilenummer: "TESTKIT5200C40", Kanal: "B"},
 	}
-	befunde := Speicher(riegel)
-
-	for _, b := range befunde {
+	for _, b := range Speicher(riegel) {
 		if b.Schwere == Hinweis {
-			t.Errorf("bei widerspruechlichen Taktangaben darf nichts behauptet werden, kam: %q", b.Titel)
+			t.Errorf("bei aktivem Profil darf kein Hinweis kommen, kam: %q", b.Titel)
 		}
 	}
-	if len(befunde) != 1 || befunde[0].Titel != "Zum Speichertakt sage ich lieber nichts" {
-		t.Fatalf("erwartet: genau die ehrliche Anmerkung, kam: %+v", befunde)
+}
+
+// Die Gegenprobe: Profil AUS, beide Felder nennen den Grundtakt, die
+// Teilenummer nennt mehr. Genau dafuer gibt es dieses Programm.
+func TestAbgeschaltetesProfilWirdWeiterhinErkannt(t *testing.T) {
+	riegel := []Riegel{
+		{KapazitaetBytes: 17179869184, TaktMhz: 4800, TaktMhzZweiter: 4800,
+			Teilenummer: "TESTKIT5200C40", Kanal: "A"},
+		{KapazitaetBytes: 17179869184, TaktMhz: 4800, TaktMhzZweiter: 4800,
+			Teilenummer: "TESTKIT5200C40", Kanal: "B"},
 	}
-	if !strings.Contains(befunde[0].Feststellung, "4800") ||
-		!strings.Contains(befunde[0].Feststellung, "5600") {
-		t.Error("die Anmerkung muss beide gemeldeten Werte nennen, sonst kann niemand nachvollziehen, warum wir schweigen")
+	var gefunden bool
+	for _, b := range Speicher(riegel) {
+		if b.Schwere == Hinweis {
+			gefunden = true
+			if !strings.Contains(b.Feststellung, "4800") {
+				t.Error("der Befund muss den gemeldeten Ist-Takt nennen")
+			}
+		}
+	}
+	if !gefunden {
+		t.Error("abgeschaltetes Profil muss weiterhin einen Hinweis ergeben")
+	}
+}
+
+// Fehlt ConfiguredClockSpeed ganz (manche Boards fuellen das Feld
+// nicht), muss Speed als Rueckfall einspringen. Ohne diesen Rueckfall
+// waere der wichtigste Befund auf solchen Rechnern tot.
+func TestOhneZweitesFeldGiltSpeed(t *testing.T) {
+	riegel := []Riegel{
+		{KapazitaetBytes: 17179869184, TaktMhz: 2133, TaktMhzZweiter: 0,
+			Teilenummer: "CMK32GX4M2E3200C16", Kanal: "A"},
+		{KapazitaetBytes: 17179869184, TaktMhz: 2133, TaktMhzZweiter: 0,
+			Teilenummer: "CMK32GX4M2E3200C16", Kanal: "B"},
+	}
+	var gefunden bool
+	for _, b := range Speicher(riegel) {
+		if b.Schwere == Hinweis && strings.Contains(b.Feststellung, "2133") {
+			gefunden = true
+		}
+	}
+	if !gefunden {
+		t.Error("ohne ConfiguredClockSpeed muss Speed als Rueckfall greifen")
 	}
 }
 
 // Die uebrigen Speicherpruefungen haengen nicht am Takt und muessen auch
-// dann laufen, wenn der Takt unklar ist. Sonst haette der Fix von oben
-// nebenbei den Einkanal-Befund abgeschaltet.
-func TestUnklarerTaktStopptDieUebrigenPruefungenNicht(t *testing.T) {
+// dann laufen, wenn zum Takt nichts zu sagen ist.
+func TestTaktpruefungStopptDieUebrigenPruefungenNicht(t *testing.T) {
 	riegel := []Riegel{
 		{KapazitaetBytes: 17179869184, TaktMhz: 4800, TaktMhzZweiter: 5600,
 			Teilenummer: "TESTKIT5200C40", Kanal: "A"},
