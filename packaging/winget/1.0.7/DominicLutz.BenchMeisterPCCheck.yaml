@@ -1,9 +1,9 @@
 # Versions-Manifest fuer winget (https://github.com/microsoft/winget-pkgs).
 # Die drei Dateien in diesem Ordner werden bei der Einreichung unveraendert
-# nach manifests/d/DominicLutz/BenchMeisterPCCheck/1.0.6/ kopiert,
+# nach manifests/d/DominicLutz/BenchMeisterPCCheck/1.0.7/ kopiert,
 # siehe EINREICHEN.md daneben.
 PackageIdentifier: DominicLutz.BenchMeisterPCCheck
-PackageVersion: 1.0.6
+PackageVersion: 1.0.7
 DefaultLocale: de-DE
 ManifestType: version
 ManifestVersion: 1.6.0

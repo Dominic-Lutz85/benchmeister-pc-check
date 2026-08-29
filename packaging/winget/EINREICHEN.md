@@ -1,23 +1,23 @@
 # winget-Einreichung
 
-Die drei YAML-Dateien im Unterordner 1.0.6 sind das fertige Manifest fuer
-Version 1.0.6. Einreichen geht so:
+Die drei YAML-Dateien im Unterordner 1.0.7 sind das fertige Manifest fuer
+Version 1.0.7. Einreichen geht so:
 
 1. Öffne https://github.com/microsoft/winget-pkgs und klicke oben rechts
    auf **Fork**.
 2. Im eigenen Fork: **Add file → Upload files** im Ordner
-   `manifests/d/DominicLutz/BenchMeisterPCCheck/1.0.6/`
+   `manifests/d/DominicLutz/BenchMeisterPCCheck/1.0.7/`
    (den Pfad bei "Name your file" einfach vor den Dateinamen tippen,
    GitHub legt die Ordner an).
-3. Alle drei YAML-Dateien aus dem Ordner 1.0.6 hochladen.
+3. Alle drei YAML-Dateien aus dem Ordner 1.0.7 hochladen.
 4. **Commit changes**, dann den vorgeschlagenen **Pull Request** eröffnen.
 5. Warten: Ein automatischer Prüflauf validiert das Manifest, danach
    schaut ein Mensch von Microsoft drüber. Dauert meist wenige Tage.
 
 Vorab lokal testen (optional, PowerShell):
 
-    winget validate packaging/winget/1.0.6
-    winget install --manifest packaging/winget/1.0.6
+    winget validate packaging/winget/1.0.7
+    winget install --manifest packaging/winget/1.0.7
 
 ## Bei jeder neuen Version
 
@@ -33,7 +33,7 @@ Vorab lokal testen (optional, PowerShell):
 ## WICHTIG: nie eine ueberholte Fassung durchlaufen lassen
 
 Am 29.08.2026 stand der PR microsoft/winget-pkgs#425633 offen auf 1.0.4
-und war merge-bereit, waehrend 1.0.6 laengst veroeffentlicht war. Die
+und war merge-bereit, waehrend 1.0.7 laengst veroeffentlicht war. Die
 1.0.4 enthaelt aber genau den Fehler, bei dem der Speichertakt falsch
 gemeldet wird: Die Reparatur war drin, kam aber wegen einer vergessenen
 Kopierstelle nie beim Nutzer an.
