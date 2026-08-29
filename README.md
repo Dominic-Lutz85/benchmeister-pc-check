@@ -157,11 +157,32 @@ Abschnitt 3d.
 Voraussetzung: [Go](https://go.dev/dl/) ab Version 1.21.
 
 ```
-go build -ldflags="-s -w" -o BenchMeister-PC-Check.exe .
+go build -trimpath -ldflags="-s -w" -o BenchMeister-PC-Check.exe .
 ```
 
 Ergibt eine eigenständige Datei von etwa 9 MB, ohne weitere
 Abhängigkeiten.
+
+### Der Bau ist reproduzierbar (ab 1.0.6)
+
+Wer aus demselben Git-Stand mit derselben Go-Fassung baut, bekommt eine
+**bytegleiche** Datei. Die SHA256-Prüfsumme muss also mit der beim
+Release angegebenen übereinstimmen. Tut sie das nicht, stimmt etwas
+nicht, und darüber will ich Bescheid wissen.
+
+Dafür waren zwei Dinge nötig, beide seit 1.0.6:
+
+- **`-trimpath`** im Befehl oben. Ohne den Schalter backt Go die
+  vollständigen Pfade des Bau-Rechners in die Datei, samt
+  Windows-Benutzername des Bauenden. In den Fassungen bis 1.0.5 stand
+  meiner dort 796 mal drin. Das war kein Datenleck über euch, aber
+  peinlich für ein Programm, das ausdrücklich verspricht, keinen
+  Benutzernamen zu erfassen.
+- **`.gitattributes`** mit `eol=lf`. Die HTML-Seite wird fest in die exe
+  eingebacken. Ohne die Festlegung entschied die lokale Git-Einstellung,
+  ob dort LF oder CRLF landet, und ein frischer Klon baute deshalb eine
+  Datei mit 2,65 Millionen abweichenden Bytes. Gleicher Quelltext,
+  andere Datei.
 
 ## Hinweis zur Windows-Warnung
 
@@ -171,7 +192,11 @@ Signaturzertifikat kostet mehrere hundert Euro pro Jahr, und BenchMeister
 hat bisher keinen Umsatz. Das wird nachgeholt, sobald es sich trägt.
 
 Wem das zu unsicher ist: Der Quelltext liegt hier, das Programm lässt sich
-mit dem Befehl oben in wenigen Sekunden selbst bauen.
+mit dem Befehl oben in wenigen Sekunden selbst bauen. Und seit 1.0.6
+lässt sich zusätzlich nachprüfen, dass die angebotene Datei wirklich aus
+diesem Quelltext stammt: selbst bauen, Prüfsumme vergleichen, sie muss
+gleich sein. Das ersetzt keine Signatur, aber es ist mehr, als eine
+Signatur allein beweisen würde.
 
 ## Aufbau
 

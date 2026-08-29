@@ -1,0 +1,29 @@
+# Zeilenenden festnageln, damit aus demselben Quelltext dieselbe exe wird.
+#
+# WARUM DAS HIER STEHT (29.08.2026)
+# =================================
+# Die HTML-Seite unter internal/ui/assets wird per go:embed FEST IN DIE
+# exe eingebacken. Ohne diese Datei entscheidet die lokale Git-
+# Einstellung (core.autocrlf), ob dort LF oder CRLF landet. Unter Windows
+# ist autocrlf ueblicherweise an, unter Linux und macOS aus.
+#
+# Folge, nachgemessen: Ein frischer Klon dieses Repos baute eine exe mit
+# 2,65 Millionen abweichenden Bytes gegenueber dem Bau im
+# Entwicklungsordner. Gleicher Quelltext, gleiche Go-Fassung, gleiche
+# eingebettete Kennzeichnung, trotzdem eine andere Datei. Grund war
+# allein die Zeilenende-Frage: 348 Zeilen mal ein Byte Unterschied in der
+# eingebetteten Vorlage, danach verschiebt sich alles dahinter.
+#
+# Das ist mehr als Schoenheit. Diese exe ist NICHT signiert, Windows
+# warnt beim Start entsprechend. Das einzige belastbare Gegenargument
+# lautet: "Bau es selbst und vergleiche die Pruefsumme mit meiner." Genau
+# das ging vorher nicht, weil jeder eine andere Datei bekam.
+#
+# eol=lf erzwingt LF auch in der Windows-Arbeitskopie. Das ist Absicht:
+# Nur so bauen Windows, Linux und macOS dieselbe Datei.
+* text=auto eol=lf
+
+# Binaerdateien nie anfassen.
+*.exe binary
+*.png binary
+*.ico binary
