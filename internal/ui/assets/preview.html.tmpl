@@ -85,8 +85,14 @@
       <tr><th>Grafikspeicher</th><td>
         {{if .Scan.GPUVramGb}}{{.Scan.GPUVramGb}} GB{{else}}<span class="nichts">von Windows nicht zuverlässig gemeldet</span>{{end}}
       </td></tr>
+      {{/* MT/s, nicht MHz. Hier stand bis zum 29.08.2026 "MHz", und das
+           ist bei DDR um den Faktor zwei falsch: 5600 MT/s sind 2800 MHz.
+           Windows beschriftet das Feld selbst falsch, das ist aber kein
+           Grund, den Fehler weiterzureichen. Die Befunde weiter unten
+           sprachen ohnehin schon von MT/s, auf derselben Seite standen
+           also zwei Einheiten fuer dieselbe Zahl. */}}
       <tr><th>Arbeitsspeicher</th><td>
-        {{.Scan.RamTotalGb}} GB{{if .Scan.RamSpeedMhz}}, {{.Scan.RamSpeedMhz}} MHz{{end}}
+        {{.Scan.RamTotalGb}} GB{{if .Scan.RamSpeedMhz}}, {{.Scan.RamSpeedMhz}} MT/s{{end}}
       </td></tr>
       {{/* Alle Laufwerke einzeln, nicht nur das groesste. Bis 29.08.2026
            stand hier nur StorageType und StorageCapacityGb, und das
@@ -239,6 +245,24 @@
     senden.disabled = !anzeigen.checked;
   });
   marktforschung.addEventListener("change", rohdatenAktualisieren);
+
+  /* Beim Laden EINMAL beide Zustaende nachziehen. Sieht ueberfluessig
+     aus, ist es aber nicht: Firefox stellt beim Neuladen (F5) die
+     Haekchen wieder her, ohne dabei ein change-Ereignis auszuloesen.
+     Ohne diese zwei Zeilen passierte danach Folgendes:
+
+     - Das erste Haekchen ist sichtbar gesetzt, der Knopf bleibt aber
+       grau, weil er im HTML fest auf disabled steht. Sieht nach einem
+       kaputten Programm aus.
+     - Schlimmer: Ist das zweite Haekchen wiederhergestellt, steht im
+       Rohdaten-Block weiterhin p_consent_market_research: false,
+       gesendet wuerde aber true. Genau darueber steht die Zusage
+       "genau das würde übertragen". Ein Block, der die Zustimmung
+       falsch anzeigt, ist schlimmer als gar keiner.
+
+     Gefunden bei der Durchsicht vor 1.0.6 am 29.08.2026. */
+  senden.disabled = !anzeigen.checked;
+  rohdatenAktualisieren();
 
   senden.addEventListener("click", async () => {
     senden.disabled = true;

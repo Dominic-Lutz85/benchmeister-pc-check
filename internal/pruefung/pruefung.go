@@ -213,6 +213,14 @@ func Speicher(riegel []Riegel) []Befund {
 	// nennt der Befund weiterhin den Weg zum Gegenpruefen.
 	// ConfiguredClockSpeed hat Vorrang, Speed ist nur der Rückfall.
 	// Begründung siehe der grosse Kommentarblock oben.
+	//
+	// ACHTUNG: Dieselbe Regel steht ein zweites Mal in
+	// scan.RiegelInfo.IstTaktMhz, weil dieses Paket bewusst nichts ueber
+	// das Auslese-Paket weiss. Genau so eine Doppelung hat am 29.08.2026
+	// dazu gefuehrt, dass der Befund 5600 sagte und die Tabelle darueber
+	// 4800. Wer hier etwas aendert, muss es dort auch aendern. Der Test
+	// TestScanUndPruefungRechnenGleich in internal/ui haelt beide
+	// zusammen und faellt, wenn sie auseinanderlaufen.
 	var istTakt uint32
 	for _, r := range riegel {
 		takt := r.TaktMhzZweiter

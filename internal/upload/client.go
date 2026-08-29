@@ -41,8 +41,13 @@ import (
 // Rechner ändert sich nichts, außer dass Fehlermeldungen jetzt
 // verständlich sind statt roher Datenbankantworten.
 const (
-	uploadURL        = "https://www.benchmeister.de/api/scan"
-	ergebnisBasisURL = "https://benchmeister.de/pc-check-tool/ergebnis/"
+	uploadURL = "https://www.benchmeister.de/api/scan"
+	// Mit www, wie die Adresse darueber. Ohne www stand hier eine
+	// Adresse, die beim Aufruf erst auf www umgeleitet wird. Das
+	// funktioniert, sieht aber in der Adresszeile nach einem anderen
+	// Ziel aus als das, was das Programm gerade angezeigt hat.
+	// Angeglichen am 29.08.2026.
+	ergebnisBasisURL = "https://www.benchmeister.de/pc-check-tool/ergebnis/"
 )
 
 // Anfrage bildet exakt die Parameter der Datenbank-Funktion

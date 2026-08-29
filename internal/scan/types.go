@@ -99,6 +99,39 @@ type RiegelInfo struct {
 	Kanal          string
 }
 
+// IstTaktMhz liefert den Takt, mit dem dieser Riegel tatsaechlich laeuft.
+//
+// DIE REGEL, an einer Stelle, damit sie nicht auseinanderlaufen kann:
+// ConfiguredClockSpeed gilt, wenn es gefuellt ist, sonst Speed.
+//
+//	Speed                = hoechster nativer Takt OHNE Profil.
+//	                       Bei DDR5 also fast immer 4800.
+//	ConfiguredClockSpeed = was das BIOS eingestellt hat (XMP, EXPO,
+//	                       manuell). Das ist der Wert, der zaehlt.
+//
+// Ein Unterschied zwischen beiden ist kein Widerspruch, sondern der
+// Normalfall bei aktivem Profil. Erklaert von NullPointerEx im
+// PCGH-Forum am 29.08.2026.
+//
+// WARUM DIESE FUNKTION UEBERHAUPT EXISTIERT: Die Regel stand bis zum
+// 29.08.2026 nur in internal/pruefung. Die Ist-Geschwindigkeit, die in
+// der Hardware-Uebersicht ANGEZEIGT und an BenchMeister UEBERTRAGEN
+// wird, entstand daneben aus einer zweiten, aelteren Rechnung, die nur
+// Speed kannte. Auf einem Rechner mit aktivem Profil sagte deshalb der
+// Befund 5600 und die Tabelle direkt darueber 4800, auf derselben Seite.
+// Uebertragen wurde ebenfalls die 4800, also ausgerechnet in der
+// Statistik, die spaeter etwas belegen soll.
+//
+// Verlaesslich ist auch dieser Wert nicht: Was in SMBIOS Typ 17 landet,
+// entscheidet das BIOS des Boards. Deshalb behauptet die Oberflaeche
+// nichts, sondern sagt "Windows meldet".
+func (r RiegelInfo) IstTaktMhz() uint32 {
+	if r.TaktMhzZweiter > 0 {
+		return r.TaktMhzZweiter
+	}
+	return r.TaktMhz
+}
+
 // LaufwerkInfo ist ein Datentraeger, nur zur lokalen Anzeige.
 type LaufwerkInfo struct {
 	Name      string

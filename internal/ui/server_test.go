@@ -76,3 +76,82 @@ func TestRiegelOhneProfilMeldetWeiterhin(t *testing.T) {
 		t.Error("Bei 4800 statt 5200 muss der Takt-Befund kommen, er kam nicht")
 	}
 }
+
+/*
+ * Haelt die beiden Stellen zusammen, die den Ist-Takt berechnen.
+ *
+ * Die Regel steht zweimal im Programm: einmal in
+ * scan.RiegelInfo.IstTaktMhz (fuer Anzeige und Uebertragung) und einmal
+ * in pruefung.Speicher (fuer den Befund). Das ist Absicht, die beiden
+ * Pakete sollen nichts voneinander wissen. Genau diese Doppelung war
+ * aber am 29.08.2026 der Fehler: Die Pruefung rechnete mit
+ * ConfiguredClockSpeed, Anzeige und Upload weiterhin nur mit Speed. Auf
+ * derselben Seite stand dann im Befund 5600 und in der Tabelle darueber
+ * 4800.
+ *
+ * Der Test prueft nicht die Formel, sondern das, was zaehlt: Der Befund
+ * kommt genau dann, wenn der von scan berechnete Ist-Takt unter der
+ * Sollgeschwindigkeit liegt. Laufen die beiden Rechnungen auseinander,
+ * faellt er.
+ */
+func TestScanUndPruefungRechnenGleich(t *testing.T) {
+	// CMK32GX5M2B5200C40 heisst: Soll 5200. Die 5 Prozent Toleranz der
+	// Pruefung liegen bei 4940, deshalb ist 5000 knapp in Ordnung.
+	const teil = "CMK32GX5M2B5200C40"
+
+	faelle := []struct {
+		name       string
+		speed      uint32
+		konfig     uint32
+		befundNoet bool
+	}{
+		{"Profil an, laeuft ueber Soll", 4800, 5600, false},
+		{"Profil an, laeuft auf Soll", 4800, 5200, false},
+		{"Profil aus, Board fuellt beide Felder", 4800, 4800, true},
+		{"Board fuellt das zweite Feld nicht", 4800, 0, true},
+		{"Board fuellt nur das zweite Feld", 0, 5200, false},
+		{"knapp innerhalb der Toleranz", 4800, 5000, false},
+		{"knapp ausserhalb der Toleranz", 4800, 4900, true},
+	}
+
+	for _, f := range faelle {
+		t.Run(f.name, func(t *testing.T) {
+			roh := scan.RiegelInfo{
+				KapazitaetBytes: 16 << 30,
+				TaktMhz:         f.speed,
+				TaktMhzZweiter:  f.konfig,
+				Teilenummer:     teil,
+			}
+			e := &scan.ScanResult{Riegel: []scan.RiegelInfo{roh, roh}}
+
+			var befund bool
+			for _, b := range pruefung.Speicher(riegelFuerPruefung(e)) {
+				if b.Titel == "Arbeitsspeicher läuft womöglich unter seiner Sollgeschwindigkeit" {
+					befund = true
+				}
+			}
+
+			// Erste Probe: Stimmt das Verhalten mit der Tabelle ueberein?
+			// Faengt es ab, wenn BEIDE Rechnungen gemeinsam falsch werden.
+			if befund != f.befundNoet {
+				t.Errorf("Speed %d, ConfiguredClockSpeed %d: Befund %v erwartet, %v bekommen",
+					f.speed, f.konfig, f.befundNoet, befund)
+			}
+
+			// Zweite Probe, das ist die eigentliche Klammer: Aus dem Wert,
+			// den scan berechnet, muss sich der Befund vorhersagen lassen.
+			// Weicht eine der beiden Rechnungen ab, passt die Vorhersage
+			// nicht mehr und dieser Test faellt.
+			const sollTakt = 5200
+			const toleranz = 0.95
+			ist := roh.IstTaktMhz()
+			vorhergesagt := ist > 0 && float64(ist) < sollTakt*toleranz
+			if befund != vorhergesagt {
+				t.Errorf("scan.IstTaktMhz sagt %d, daraus folgt Befund %v, "+
+					"die Pruefung sagt aber %v. Die beiden Rechnungen sind "+
+					"auseinandergelaufen (Speed %d, ConfiguredClockSpeed %d)",
+					ist, vorhergesagt, befund, f.speed, f.konfig)
+			}
+		})
+	}
+}

@@ -179,17 +179,24 @@ func arbeitsspeicher(e *ScanResult) {
 	for _, m := range liste {
 		summe += m.Capacity
 		// Nur fuer die lokale Pruefung und Anzeige, wird nicht uebertragen.
-		e.Riegel = append(e.Riegel, RiegelInfo{
+		riegel := RiegelInfo{
 			KapazitaetBytes: m.Capacity,
 			TaktMhz:         m.Speed,
 			TaktMhzZweiter:  m.ConfiguredClockSpeed,
 			Teilenummer:     strings.TrimSpace(m.PartNumber),
 			Kanal:           strings.TrimSpace(m.BankLabel),
-		})
+		}
+		e.Riegel = append(e.Riegel, riegel)
+
 		// Bei gemischten Riegeln zählt der langsamste, denn genau mit dem
 		// läuft das ganze System.
-		if m.Speed > 0 && (takt == 0 || m.Speed < takt) {
-			takt = m.Speed
+		//
+		// Hier stand bis zum 29.08.2026 direkt m.Speed. Das war der
+		// JEDEC-Grundtakt und damit auf jedem Rechner mit aktivem
+		// Speicherprofil zu niedrig. Die Regel steht jetzt nur noch an
+		// einer Stelle, siehe RiegelInfo.IstTaktMhz in types.go.
+		if ist := riegel.IstTaktMhz(); ist > 0 && (takt == 0 || ist < takt) {
+			takt = ist
 		}
 	}
 
