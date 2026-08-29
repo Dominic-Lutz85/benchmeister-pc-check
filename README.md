@@ -31,6 +31,38 @@ identifier. The source of every network call is in
 in this project that talks to the internet. The rest of this README is
 in German, as is the website.
 
+## Wie dieser Quelltext entstanden ist
+
+Der Code ist zum größten Teil mit Claude geschrieben. Das steht in den
+Commits auch so drin (`Co-Authored-By: Claude`), und es soll nicht erst
+auffallen, wenn jemand den Verlauf durchsieht.
+
+Was das heißt und was nicht: Ich gebe vor, was gebaut wird, lese jede
+Änderung, teste sie auf echter Hardware und entscheide, was hineinkommt.
+Die Fehler, die hier gefunden wurden, waren am Ende immer meine, und die
+Verantwortung für das, was ihr startet, liegt bei mir. Ich bin
+Autodidakt, kein ausgebildeter Entwickler. Ohne das Werkzeug gäbe es
+dieses Programm nicht, mit einem menschlichen Team wäre es vermutlich an
+manchen Stellen besser.
+
+Genau deshalb liegt der Quelltext offen und genau deshalb ist der Bau
+reproduzierbar: Ihr müsst mir nicht glauben, ihr könnt nachsehen.
+
+## Womit das Projekt Geld verdient
+
+Damit das nicht zwischen den Zeilen steht:
+
+- Auf der Ergebnisseite auf benchmeister.de stehen **Kauflinks, an denen
+  ich mitverdiene**. Sie sind als Werbung gekennzeichnet. Welche Bauteile
+  empfohlen werden, entscheidet die Rangliste, nicht die Provision.
+- Das **zweite Häkchen** (Marktforschung) erlaubt, die anonymen Angaben
+  in eine Gesamtstatistik einfließen zu lassen, die an Hersteller und
+  Händler weitergegeben werden kann. Freiwillig und unabhängig vom
+  ersten.
+- **Das Programm selbst verdient nichts.** Es überträgt nichts ohne
+  Zustimmung, und wer nur den lokalen Befund lesen und das Fenster
+  zumachen will, kann das tun.
+
 ## Warum dieser Quelltext offen ist
 
 Dieses Programm bittet darum, eine fremde ausführbare Datei zu starten,
