@@ -29,6 +29,15 @@
       3. Dieses Skript mit dem Tag aufrufen:  .\release-bauen.ps1 v1.0.9
       4. Die erzeugte Datei ins Release haengen und die ausgegebene
          Pruefsumme in den Release-Text schreiben.
+
+    Schritt 2 laesst sich auch vorziehen, indem der Tag von Hand
+    gesetzt und gepusht wird. Dann aber LEICHTGEWICHTIG, also
+    `git tag v1.0.9 <commit>` OHNE -a. Ein annotierter Tag zeigt auf ein
+    Tag-Objekt statt auf den Commit, und `git clone --branch --depth 1`
+    scheitert daran mit "is not a commit". GitHub legt beim Anlegen
+    eines Releases ebenfalls einen leichtgewichtigen an, alle bisherigen
+    Fassungen sind so getaggt. Am 30.08.2026 einmal falsch gemacht und
+    den Tag nachtraeglich ersetzen muessen.
 #>
 
 param(
@@ -50,7 +59,11 @@ $arbeit = Join-Path $env:TEMP "bmpc-release-$Tag"
 if (Test-Path $arbeit) { Remove-Item $arbeit -Recurse -Force }
 
 Write-Host "Klone $Tag frisch nach $arbeit ..."
-git clone --quiet --branch $Tag --depth 1 $Repo $arbeit
+# -c advice.detachedHead=false: Ohne das schreibt git seinen Hinweis
+# zum losgeloesten HEAD auf die Fehlerausgabe, und PowerShell wertet
+# bei ErrorActionPreference=Stop jede Zeile davon als Fehler. Das
+# Skript brach dadurch ab, obwohl der Klon einwandfrei durchlief.
+git -c advice.detachedHead=false clone --quiet --branch $Tag --depth 1 $Repo $arbeit
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ABBRUCH: Tag $Tag laesst sich nicht klonen. Ist er gepusht?" -ForegroundColor Red
     exit 1
