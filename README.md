@@ -195,6 +195,16 @@ go build -trimpath -ldflags="-s -w" -o BenchMeister-PC-Check.exe .
 Ergibt eine eigenständige Datei von etwa 9 MB, ohne weitere
 Abhängigkeiten.
 
+**Wichtig, wenn die Prüfsumme stimmen soll:** vorher committen. Go
+schreibt den Git-Stand in die Datei, also den Commit und die Angabe, ob
+der Arbeitsbaum geändert war. Aus einem geänderten Baum entsteht eine
+Datei, deren Prüfsumme niemand nachbauen kann. Was in einer fertigen exe
+steckt, zeigt `go version -m BenchMeister-PC-Check.exe`.
+
+Unter Windows nimmt einem `bauen.ps1` beides ab: Es bricht ab, solange
+etwas nicht committet ist, baut unter dem richtigen Dateinamen und gibt
+die Prüfsumme aus.
+
 ### Der Bau ist reproduzierbar (ab 1.0.6)
 
 Wer aus demselben Git-Stand mit derselben Go-Fassung baut, bekommt eine
