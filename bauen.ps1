@@ -29,6 +29,26 @@
 
     Pruefen laesst sich der Stempel in einer fertigen exe jederzeit mit:
         go version -m BenchMeister-PC-Check.exe
+
+    NACHTRAG VOM SELBEN ABEND, wichtiger als die zwei Punkte oben:
+
+    Dieses Skript baut im Arbeitsordner, und der ist fuer ein Release
+    die falsche Grundlage. Nachgemessen am 29.08.2026 an Fassung 1.0.8:
+
+        Arbeitsordner, sauber auf b2fd0d7   -> 3404A1B4...
+        frischer Klon des Tags v1.0.8       -> 451C0F45...
+        zweiter frischer Klon desselben Tags -> 451C0F45...
+
+    Gleicher Commit, gleicher eingebetteter Stempel (vcs.revision und
+    vcs.modified stimmen ueberein), trotzdem zwei verschiedene Dateien.
+    Woran die lokale Abweichung liegt, ist ungeklaert.
+
+    Entscheidend ist aber nicht, was hier herauskommt, sondern was ein
+    Nachpruefer bekommt. Und der klont und baut, wie die beiden Klone
+    oben. DIE ZAHL AUS EINEM FRISCHEN KLON IST DIE RICHTIGE.
+
+    Fuer ein Release deshalb IMMER release-bauen.ps1 nehmen, das genau
+    das tut. Dieses Skript hier ist fuer den Alltag.
 #>
 
 $ErrorActionPreference = "Stop"
