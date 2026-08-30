@@ -211,6 +211,42 @@ func sollTaktAusTeilenummer(teilenummer string) int {
 }
 
 // Speicher prüft die Riegel auf ungenutztes Potenzial.
+/*
+ * Liest aus der Kanal-Beschriftung den Kanal heraus.
+ *
+ * Windows liefert in BankLabel Zeichenketten wie "P0 CHANNEL A" oder
+ * "BANK 0". Die erste Form nennt den Kanal, die zweite nicht. Welche
+ * ein Board schreibt, entscheidet sein Hersteller.
+ *
+ * Deshalb gibt es hier zwei Ergebnisse und nicht eines: den Kanal und
+ * die Angabe, ob er ueberhaupt erkennbar war. Wo nichts zu erkennen
+ * ist, wird nichts behauptet. Genau diese Unterscheidung hat beim
+ * Speichertakt gefehlt und zu einem Fehlalarm bei einem Moderator
+ * gefuehrt.
+ *
+ * Gesucht wird bewusst nur nach dem Wort CHANNEL mit einem Buchstaben
+ * dahinter. "BANK 0" und "BANK 1" sehen zwar nach zwei Kanaelen aus,
+ * sind aber auf vielen Boards zwei Slots DESSELBEN Kanals. Wer das
+ * verwechselt, meldet Einkanalbetrieb, wo keiner ist.
+ */
+func kanalAus(beschriftung string) (string, bool) {
+	gross := strings.ToUpper(strings.TrimSpace(beschriftung))
+	i := strings.Index(gross, "CHANNEL")
+	if i < 0 {
+		return "", false
+	}
+	rest := strings.TrimSpace(gross[i+len("CHANNEL"):])
+	if rest == "" {
+		return "", false
+	}
+	// Der Kanal ist genau ein Buchstabe: A, B, C, D.
+	buchstabe := rest[0]
+	if buchstabe < 'A' || buchstabe > 'D' {
+		return "", false
+	}
+	return string(buchstabe), true
+}
+
 func Speicher(riegel []Riegel) []Befund {
 	if len(riegel) == 0 {
 		return nil
@@ -413,11 +449,53 @@ func Speicher(riegel []Riegel) []Befund {
 		})
 	}
 
+	/*
+	 * ---- 2a. Mehrere Riegel, aber alle im selben Kanal ----
+	 *
+	 * Der Fall, den das Programm bis zum 30.08.2026 uebersehen hat, weil
+	 * es nur die Riegel GEZAEHLT hat. Zwei Riegel nebeneinander im
+	 * selben Kanal laufen im Einkanalbetrieb, genau wie ein einzelner.
+	 * Von aussen sieht der Rechner voll bestueckt aus.
+	 *
+	 * Anders als beim fehlenden Speicherprofil hilft hier kein
+	 * BIOS-Schalter: Die Riegel muessen umgesteckt werden. Das ist ein
+	 * Handgriff und kostet nichts, deshalb steht der Befund unter den
+	 * kostenlosen.
+	 */
+	kanaele := map[string]bool{}
+	kanalUnklar := false
+	for _, r := range riegel {
+		if k, ok := kanalAus(r.Kanal); ok {
+			kanaele[k] = true
+		} else {
+			kanalUnklar = true
+		}
+	}
+	if len(riegel) > 1 && !kanalUnklar && len(kanaele) == 1 {
+		befunde = append(befunde, Befund{
+			Schwere: Hinweis,
+			Titel:   "Alle Riegel stecken im selben Kanal",
+			Feststellung: fmt.Sprintf(
+				"%d Riegel, aber alle in Kanal %s. Damit läuft der Speicher im Einkanalbetrieb.",
+				len(riegel), einzigerKanal(kanaele)),
+			Empfehlung: "Einen Riegel in einen Steckplatz des anderen Kanals umstecken. " +
+				"Welcher das ist, steht im Handbuch des Mainboards.",
+			Hintergrund: "Zwei Kanäle arbeiten nebeneinander und verdoppeln die " +
+				"Bandbreite. Stecken alle Riegel im selben, bleibt die Hälfte " +
+				"ungenutzt, obwohl der Rechner voll bestückt aussieht. Auf den " +
+				"meisten Boards mit vier Steckplätzen gehören zwei Riegel in den " +
+				"zweiten und vierten Slot, gezählt vom Prozessor weg, aber das " +
+				"unterscheidet sich von Board zu Board. Anders als beim " +
+				"Speicherprofil hilft hier kein Schalter im BIOS, die Riegel " +
+				"müssen wirklich umgesteckt werden.",
+		})
+	}
+
 	// ---- 2. Nur ein Riegel, also Einkanalbetrieb ----
 	if len(riegel) == 1 {
 		befunde = append(befunde, Befund{
-			Schwere: Hinweis,
-			Titel:   "Nur ein Speicherriegel verbaut",
+			Schwere:      Hinweis,
+			Titel:        "Nur ein Speicherriegel verbaut",
 			Feststellung: "Mit einem einzelnen Riegel läuft der Speicher im Einkanalbetrieb.",
 			Empfehlung:   "Einen zweiten, baugleichen Riegel ergänzen.",
 			Hintergrund: "Zwei Riegel arbeiten nebeneinander und verdoppeln die Bandbreite. " +
@@ -527,4 +605,13 @@ func Laufwerke(laufwerke []Laufwerk) []Befund {
 // Alle führt sämtliche Prüfungen zusammen.
 func Alle(riegel []Riegel, laufwerke []Laufwerk) []Befund {
 	return append(Speicher(riegel), Laufwerke(laufwerke)...)
+}
+
+// Der einzige Kanal aus der Menge. Wird nur aufgerufen, wenn genau
+// einer drin ist.
+func einzigerKanal(m map[string]bool) string {
+	for k := range m {
+		return k
+	}
+	return "?"
 }

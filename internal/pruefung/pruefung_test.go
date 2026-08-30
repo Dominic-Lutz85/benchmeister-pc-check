@@ -397,7 +397,6 @@ func TestHalbeRateVerschlucktDenRestNicht(t *testing.T) {
 	}
 }
 
-
 /*
  * Die Laengenbremse, angelegt am 30.08.2026.
  *
@@ -446,5 +445,137 @@ func TestBefundeBleibenKurz(t *testing.T) {
 		if b.Empfehlung == "" {
 			t.Errorf("%q hat keine Empfehlung", b.Titel)
 		}
+	}
+}
+
+/*
+ * Kanal-Erkennung, angelegt am 30.08.2026 auf Vorschlag von "cryon1c"
+ * im PCGH-Forum.
+ *
+ * SEIN PUNKT: Zwei Riegel koennen beide im selben Kanal stecken. Dann
+ * laeuft der Speicher im Einkanalbetrieb, obwohl zwei drinstecken, und
+ * "dies passiert auch oft und hat einen noch groesseren Einfluss als
+ * ein fehlendes XMP-Profil". Bis dahin hat das Programm nur GEZAEHLT
+ * und diesen Fall durchgelassen.
+ *
+ * DER SCHWIERIGE TEIL ist nicht das Erkennen, sondern das Schweigen.
+ * Die Beschriftung kommt vom Board-Hersteller und ist oft nichtssagend.
+ * "BANK 0" und "BANK 1" sehen nach zwei Kanaelen aus, sind auf vielen
+ * Boards aber zwei Slots DESSELBEN Kanals. Wer das als Kanal liest,
+ * meldet Einkanalbetrieb, wo keiner ist, und produziert genau den
+ * Fehlalarm, der uns beim Speichertakt schon zweimal blamiert hat.
+ * Deshalb hat kanalAus() zwei Rueckgaben und nicht eine.
+ */
+func TestKanalAus(t *testing.T) {
+	faelle := []struct {
+		eingabe string
+		kanal   string
+		erkannt bool
+		warum   string
+	}{
+		{"P0 CHANNEL A", "A", true, "die haeufigste Schreibweise"},
+		{"P0 CHANNEL B", "B", true, "zweiter Kanal"},
+		{"Channel C", "C", true, "Kleinschreibung und ohne Praefix"},
+		{"  P1 CHANNEL D  ", "D", true, "mit Leerzeichen drumherum"},
+		{"BANK 0", "", false, "nennt keinen Kanal, sondern einen Slot"},
+		{"BANK 1", "", false, "dito, und sieht truegerisch nach Kanal 2 aus"},
+		{"", "", false, "manche Boards liefern gar nichts"},
+		{"DIMM_A1", "", false, "Slot-Bezeichnung, kein Kanal"},
+		{"CHANNEL", "", false, "das Wort allein sagt nichts"},
+		{"CHANNEL 1", "", false, "Ziffer statt Buchstabe, nicht auswertbar"},
+	}
+	for _, f := range faelle {
+		k, ok := kanalAus(f.eingabe)
+		if ok != f.erkannt || k != f.kanal {
+			t.Errorf("%q (%s): erwartet %q/%v, kam %q/%v",
+				f.eingabe, f.warum, f.kanal, f.erkannt, k, ok)
+		}
+	}
+}
+
+func TestAlleRiegelImSelbenKanal(t *testing.T) {
+	imSelben := []Riegel{
+		{KapazitaetBytes: 17179869184, TaktMhz: 3200, Teilenummer: "CMK32GX4M2E3200C16", Kanal: "P0 CHANNEL A"},
+		{KapazitaetBytes: 17179869184, TaktMhz: 3200, Teilenummer: "CMK32GX4M2E3200C16", Kanal: "P0 CHANNEL A"},
+	}
+	var gefunden bool
+	for _, b := range Speicher(imSelben) {
+		if b.Titel == "Alle Riegel stecken im selben Kanal" {
+			gefunden = true
+			if !strings.Contains(b.Feststellung, "Kanal A") {
+				t.Errorf("der Befund muss den Kanal nennen: %q", b.Feststellung)
+			}
+			if !strings.Contains(b.Empfehlung, "umstecken") {
+				t.Errorf("die Empfehlung muss das Umstecken nennen: %q", b.Empfehlung)
+			}
+		}
+	}
+	if !gefunden {
+		t.Error("zwei Riegel im selben Kanal wurden nicht erkannt")
+	}
+}
+
+func TestRichtigVerteilteRiegelBleibenStill(t *testing.T) {
+	verteilt := []Riegel{
+		{KapazitaetBytes: 17179869184, TaktMhz: 3200, Teilenummer: "CMK32GX4M2E3200C16", Kanal: "P0 CHANNEL A"},
+		{KapazitaetBytes: 17179869184, TaktMhz: 3200, Teilenummer: "CMK32GX4M2E3200C16", Kanal: "P0 CHANNEL B"},
+	}
+	for _, b := range Speicher(verteilt) {
+		if b.Titel == "Alle Riegel stecken im selben Kanal" {
+			t.Error("bei sauber verteilten Riegeln darf nichts gemeldet werden")
+		}
+	}
+}
+
+/*
+ * Die wichtigste Gegenprobe: Wo der Kanal nicht ablesbar ist, wird
+ * geschwiegen. Lieber ein uebersehener Fall als ein Fehlalarm, denn
+ * ein Fehlalarm kostet Vertrauen in ALLE anderen Befunde mit.
+ */
+func TestOhneKanalangabeWirdNichtsBehauptet(t *testing.T) {
+	unklar := []Riegel{
+		{KapazitaetBytes: 17179869184, TaktMhz: 3200, Teilenummer: "CMK32GX4M2E3200C16", Kanal: "BANK 0"},
+		{KapazitaetBytes: 17179869184, TaktMhz: 3200, Teilenummer: "CMK32GX4M2E3200C16", Kanal: "BANK 1"},
+	}
+	for _, b := range Speicher(unklar) {
+		if b.Titel == "Alle Riegel stecken im selben Kanal" {
+			t.Error("ohne lesbare Kanalangabe darf kein Einkanalbetrieb behauptet werden")
+		}
+	}
+
+	// Auch der gemischte Fall zaehlt: Ein Riegel mit lesbarer Angabe,
+	// einer ohne. Dann ist die Lage unklar, also wird geschwiegen.
+	halb := []Riegel{
+		{KapazitaetBytes: 17179869184, TaktMhz: 3200, Teilenummer: "CMK32GX4M2E3200C16", Kanal: "P0 CHANNEL A"},
+		{KapazitaetBytes: 17179869184, TaktMhz: 3200, Teilenummer: "CMK32GX4M2E3200C16", Kanal: "BANK 1"},
+	}
+	for _, b := range Speicher(halb) {
+		if b.Titel == "Alle Riegel stecken im selben Kanal" {
+			t.Error("bei teilweise unlesbaren Angaben darf nichts behauptet werden")
+		}
+	}
+}
+
+// Ein einzelner Riegel ist der andere Befund und darf nicht doppelt
+// gemeldet werden. Zwei Meldungen zur selben Sache sind schlimmer als
+// eine, das war schon beim halben Speichertakt so.
+func TestEinzelnerRiegelMeldetNurEinmal(t *testing.T) {
+	einer := []Riegel{
+		{KapazitaetBytes: 17179869184, TaktMhz: 3200, Teilenummer: "CMK32GX4M2E3200C16", Kanal: "P0 CHANNEL A"},
+	}
+	var kanal, einzeln int
+	for _, b := range Speicher(einer) {
+		switch b.Titel {
+		case "Alle Riegel stecken im selben Kanal":
+			kanal++
+		case "Nur ein Speicherriegel verbaut":
+			einzeln++
+		}
+	}
+	if kanal != 0 {
+		t.Error("bei einem einzelnen Riegel ist der Kanal-Befund unsinnig")
+	}
+	if einzeln != 1 {
+		t.Errorf("der Einzelriegel-Befund muss genau einmal kommen, kam %dx", einzeln)
 	}
 }
