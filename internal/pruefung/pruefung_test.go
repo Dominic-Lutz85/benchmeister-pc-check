@@ -469,26 +469,30 @@ func TestBefundeBleibenKurz(t *testing.T) {
 func TestKanalAus(t *testing.T) {
 	faelle := []struct {
 		eingabe string
+		praefix string
 		kanal   string
 		erkannt bool
 		warum   string
 	}{
-		{"P0 CHANNEL A", "A", true, "die haeufigste Schreibweise"},
-		{"P0 CHANNEL B", "B", true, "zweiter Kanal"},
-		{"Channel C", "C", true, "Kleinschreibung und ohne Praefix"},
-		{"  P1 CHANNEL D  ", "D", true, "mit Leerzeichen drumherum"},
-		{"BANK 0", "", false, "nennt keinen Kanal, sondern einen Slot"},
-		{"BANK 1", "", false, "dito, und sieht truegerisch nach Kanal 2 aus"},
-		{"", "", false, "manche Boards liefern gar nichts"},
-		{"DIMM_A1", "", false, "Slot-Bezeichnung, kein Kanal"},
-		{"CHANNEL", "", false, "das Wort allein sagt nichts"},
-		{"CHANNEL 1", "", false, "Ziffer statt Buchstabe, nicht auswertbar"},
+		{"P0 CHANNEL A", "P0", "A", true, "die haeufigste Schreibweise"},
+		{"P0 CHANNEL B", "P0", "B", true, "zweiter Kanal"},
+		{"Channel C", "", "C", true, "Kleinschreibung und ohne Praefix"},
+		{"  P1 CHANNEL D  ", "P1", "D", true, "mit Leerzeichen drumherum"},
+		// Der Fall, der die dreiteilige Rueckgabe ueberhaupt noetig
+		// macht: gleicher Buchstabe, anderer Prozessor.
+		{"P1 CHANNEL A", "P1", "A", true, "zweiter Prozessor, Kanal A"},
+		{"BANK 0", "", "", false, "nennt keinen Kanal, sondern einen Slot"},
+		{"BANK 1", "", "", false, "dito, und sieht truegerisch nach Kanal 2 aus"},
+		{"", "", "", false, "manche Boards liefern gar nichts"},
+		{"DIMM_A1", "", "", false, "Slot-Bezeichnung, kein Kanal"},
+		{"CHANNEL", "", "", false, "das Wort allein sagt nichts"},
+		{"CHANNEL 1", "", "", false, "Ziffer statt Buchstabe, nicht auswertbar"},
 	}
 	for _, f := range faelle {
-		k, ok := kanalAus(f.eingabe)
-		if ok != f.erkannt || k != f.kanal {
-			t.Errorf("%q (%s): erwartet %q/%v, kam %q/%v",
-				f.eingabe, f.warum, f.kanal, f.erkannt, k, ok)
+		p, k, ok := kanalAus(f.eingabe)
+		if ok != f.erkannt || k != f.kanal || p != f.praefix {
+			t.Errorf("%q (%s): erwartet %q/%q/%v, kam %q/%q/%v",
+				f.eingabe, f.warum, f.praefix, f.kanal, f.erkannt, p, k, ok)
 		}
 	}
 }
@@ -577,5 +581,69 @@ func TestEinzelnerRiegelMeldetNurEinmal(t *testing.T) {
 	}
 	if einzeln != 1 {
 		t.Errorf("der Einzelriegel-Befund muss genau einmal kommen, kam %dx", einzeln)
+	}
+}
+
+/*
+ * Systeme mit zwei Prozessoren, ergaenzt am 30.08.2026.
+ *
+ * Dominics Frage: "sind auch Dual-CPU-Systeme beruecksichtigt?" Sie
+ * waren es nicht, und der Fehler waere teuer geworden.
+ *
+ * Auf solchen Boards hat jeder Prozessor eigene Kanaele, beschriftet
+ * als P0 CHANNEL A und P1 CHANNEL A. Die erste Fassung las nur den
+ * Buchstaben und hielt beide fuer denselben Kanal. Eine
+ * Dual-Sockel-Maschine mit sauber verteilten Riegeln haette also
+ * "alle Riegel im selben Kanal" gemeldet, obwohl alles richtig steckt.
+ *
+ * Ein Fehlalarm ausgerechnet bei einer Workstation, deren Besitzer
+ * mehr von Hardware versteht als die meisten. Das haette das Programm
+ * genau bei den Leuten blamiert, deren Urteil zaehlt.
+ */
+func TestZweiProzessorenBleibenStill(t *testing.T) {
+	// Sauber bestueckt: je ein Riegel pro Prozessor, beide in Kanal A.
+	// Der Buchstabe ist derselbe, der Prozessor nicht.
+	zweiSockel := []Riegel{
+		{KapazitaetBytes: 17179869184, TaktMhz: 3200, Teilenummer: "CMK32GX4M2E3200C16", Kanal: "P0 CHANNEL A"},
+		{KapazitaetBytes: 17179869184, TaktMhz: 3200, Teilenummer: "CMK32GX4M2E3200C16", Kanal: "P1 CHANNEL A"},
+	}
+	for _, b := range Speicher(zweiSockel) {
+		if b.Titel == "Alle Riegel stecken im selben Kanal" {
+			t.Error("bei zwei Prozessoren darf kein Einkanalbetrieb behauptet werden")
+		}
+	}
+
+	// Auch wenn wirklich alles an einem Kanal EINES Prozessors haengt,
+	// wird bei Mehrsockel-Systemen geschwiegen. Ob das ein Problem ist,
+	// haengt dort davon ab wie die Last verteilt wird, und das sieht
+	// man der Beschriftung nicht an.
+	alleAmSelben := []Riegel{
+		{KapazitaetBytes: 17179869184, TaktMhz: 3200, Teilenummer: "CMK32GX4M2E3200C16", Kanal: "P0 CHANNEL A"},
+		{KapazitaetBytes: 17179869184, TaktMhz: 3200, Teilenummer: "CMK32GX4M2E3200C16", Kanal: "P0 CHANNEL A"},
+		{KapazitaetBytes: 17179869184, TaktMhz: 3200, Teilenummer: "CMK32GX4M2E3200C16", Kanal: "P1 CHANNEL B"},
+	}
+	for _, b := range Speicher(alleAmSelben) {
+		if b.Titel == "Alle Riegel stecken im selben Kanal" {
+			t.Error("bei zwei Prozessoren wird grundsaetzlich geschwiegen")
+		}
+	}
+}
+
+// Die Gegenprobe: Auf einem Einzelsockel-Board mit demselben Praefix
+// greift der Befund weiterhin. Sonst haette der Dual-CPU-Fix die
+// eigentliche Funktion stillgelegt.
+func TestEinProzessorMeldetWeiterhin(t *testing.T) {
+	einSockel := []Riegel{
+		{KapazitaetBytes: 17179869184, TaktMhz: 3200, Teilenummer: "CMK32GX4M2E3200C16", Kanal: "P0 CHANNEL A"},
+		{KapazitaetBytes: 17179869184, TaktMhz: 3200, Teilenummer: "CMK32GX4M2E3200C16", Kanal: "P0 CHANNEL A"},
+	}
+	var gefunden bool
+	for _, b := range Speicher(einSockel) {
+		if b.Titel == "Alle Riegel stecken im selben Kanal" {
+			gefunden = true
+		}
+	}
+	if !gefunden {
+		t.Error("auf einem Einzelsockel-Board muss der Befund weiterhin kommen")
 	}
 }

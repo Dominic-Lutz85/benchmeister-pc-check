@@ -212,39 +212,48 @@ func sollTaktAusTeilenummer(teilenummer string) int {
 
 // Speicher prüft die Riegel auf ungenutztes Potenzial.
 /*
- * Liest aus der Kanal-Beschriftung den Kanal heraus.
+ * Liest aus der Kanal-Beschriftung den Prozessor und den Kanal heraus.
  *
  * Windows liefert in BankLabel Zeichenketten wie "P0 CHANNEL A" oder
  * "BANK 0". Die erste Form nennt den Kanal, die zweite nicht. Welche
  * ein Board schreibt, entscheidet sein Hersteller.
  *
- * Deshalb gibt es hier zwei Ergebnisse und nicht eines: den Kanal und
- * die Angabe, ob er ueberhaupt erkennbar war. Wo nichts zu erkennen
- * ist, wird nichts behauptet. Genau diese Unterscheidung hat beim
- * Speichertakt gefehlt und zu einem Fehlalarm bei einem Moderator
- * gefuehrt.
+ * Deshalb gibt es drei Rueckgaben und nicht eine: das Praefix vor dem
+ * Wort CHANNEL, den Kanal selbst, und die Angabe ob ueberhaupt etwas
+ * erkennbar war. Wo nichts zu erkennen ist, wird nichts behauptet.
+ * Genau diese Unterscheidung hat beim Speichertakt gefehlt und zu
+ * einem Fehlalarm bei einem Moderator gefuehrt.
+ *
+ * WARUM DAS PRAEFIX EIGENS ZURUECKKOMMT, ergaenzt am 30.08.2026:
+ * Es gibt Rechner mit zwei Prozessoren, und jeder hat eigene Kanaele.
+ * Die Beschriftung lautet dann P0 CHANNEL A und P1 CHANNEL A. Das sind
+ * ZWEI verschiedene Kanaele an zwei Prozessoren. Die erste Fassung las
+ * nur den Buchstaben und haette bei so einer Maschine Einkanalbetrieb
+ * gemeldet, obwohl alles richtig steckt.
  *
  * Gesucht wird bewusst nur nach dem Wort CHANNEL mit einem Buchstaben
  * dahinter. "BANK 0" und "BANK 1" sehen zwar nach zwei Kanaelen aus,
  * sind aber auf vielen Boards zwei Slots DESSELBEN Kanals. Wer das
  * verwechselt, meldet Einkanalbetrieb, wo keiner ist.
  */
-func kanalAus(beschriftung string) (string, bool) {
+func kanalAus(beschriftung string) (praefix, kanal string, erkannt bool) {
 	gross := strings.ToUpper(strings.TrimSpace(beschriftung))
 	i := strings.Index(gross, "CHANNEL")
 	if i < 0 {
-		return "", false
+		return "", "", false
 	}
 	rest := strings.TrimSpace(gross[i+len("CHANNEL"):])
 	if rest == "" {
-		return "", false
+		return "", "", false
 	}
 	// Der Kanal ist genau ein Buchstabe: A, B, C, D.
 	buchstabe := rest[0]
 	if buchstabe < 'A' || buchstabe > 'D' {
-		return "", false
+		return "", "", false
 	}
-	return string(buchstabe), true
+	// Alles vor CHANNEL benennt den Prozessor, falls das Board ihn
+	// nennt. Bei Einzelsockel-Boards steht dort oft "P0" oder nichts.
+	return strings.TrimSpace(gross[:i]), string(buchstabe), true
 }
 
 func Speicher(riegel []Riegel) []Befund {
@@ -463,15 +472,27 @@ func Speicher(riegel []Riegel) []Befund {
 	 * kostenlosen.
 	 */
 	kanaele := map[string]bool{}
+	prozessoren := map[string]bool{}
 	kanalUnklar := false
 	for _, r := range riegel {
-		if k, ok := kanalAus(r.Kanal); ok {
+		if p, k, ok := kanalAus(r.Kanal); ok {
 			kanaele[k] = true
+			prozessoren[p] = true
 		} else {
 			kanalUnklar = true
 		}
 	}
-	if len(riegel) > 1 && !kanalUnklar && len(kanaele) == 1 {
+	/*
+	 * Bei mehr als einem Prozessor wird geschwiegen, ergaenzt am
+	 * 30.08.2026 nach Dominics Hinweis auf Dual-Sockel-Systeme.
+	 *
+	 * Dort ist "laeuft Dual-Channel" eine Frage PRO Prozessor, und ob
+	 * die Riegel sinnvoll auf beide verteilt sind, ist noch eine
+	 * dritte. Aus der Beschriftung allein laesst sich das nicht
+	 * beantworten. Solche Maschinen sind selten und ihre Besitzer
+	 * wissen in aller Regel, was sie tun.
+	 */
+	if len(riegel) > 1 && !kanalUnklar && len(prozessoren) == 1 && len(kanaele) == 1 {
 		befunde = append(befunde, Befund{
 			Schwere: Hinweis,
 			Titel:   "Alle Riegel stecken im selben Kanal",
