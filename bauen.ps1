@@ -89,6 +89,11 @@ Write-Host ""
 Write-Host "Fertig: $Ziel ($groesse MB)" -ForegroundColor Green
 Write-Host "SHA256: $summe"
 Write-Host ""
+Write-Host "ACHTUNG: Diese Datei liegt im PROJEKTORDNER und ist NICHT die" -ForegroundColor Yellow
+Write-Host "fuer ein Release. Die baut release-bauen.ps1 und legt sie auf den"
+Write-Host "Schreibtisch. Beide heissen gleich, das hat am 30.08.2026 schon"
+Write-Host "einmal zur Verwechslung gefuehrt."
+Write-Host ""
 Write-Host "Diese Pruefsumme gehoert in den Release-Text. Zur Gegenprobe"
 Write-Host "kann jeder das Repo klonen, dieses Skript laufen lassen und"
 Write-Host "muss denselben Wert bekommen."
