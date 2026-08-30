@@ -164,3 +164,79 @@ func TestGesendetWirdNurWasDieVorschauZeigt(t *testing.T) {
 		t.Error("Mainboard wurde uebertragen, darf es aber nicht")
 	}
 }
+
+/*
+ * Waechter ueber den Umfang der Uebertragung, angelegt am 30.08.2026.
+ *
+ * ANLASS: Beim Ergaenzen der Steckplatzzahl fiel auf, dass ein neues
+ * Feld im ScanResult theoretisch mit hochgeladen werden koennte. Es
+ * ging gut, weil baueAnfrage() seine Felder einzeln aufzaehlt und
+ * nicht die ganze Struktur weiterreicht. Aber gutgegangen ist keine
+ * Absicherung.
+ *
+ * WARUM DAS DER WICHTIGSTE TEST DES PROGRAMMS IST: Die zentrale Zusage
+ * lautet, dass vorher woertlich auf dem Bildschirm steht, was
+ * uebertragen wird. Ein Feld, das still dazukommt, bricht diese Zusage,
+ * ohne dass es jemandem auffiele. Kein Absturz, keine Fehlermeldung,
+ * nur eine Zeile mehr im Datenpaket.
+ *
+ * Der Test friert die Liste ein. Wer ein Feld ergaenzt, muss ihn
+ * anfassen, und dabei faellt die Frage an: Steht das auch in der
+ * Vorschau?
+ */
+func TestNurZugesagteFelderWerdenUebertragen(t *testing.T) {
+	// Genau die Felder, die in der Vorschau woertlich genannt werden.
+	// Diese Liste ist eine Zusage an die Nutzer, kein Implementierungs-
+	// detail.
+	// Das p_-Praefix stammt vom Datenbankaufruf submit_scan_result, die
+	// Namen dahinter sind die aus der Vorschau.
+	erlaubt := map[string]bool{
+		"p_cpu_name_raw":            true,
+		"p_cpu_cores":               true,
+		"p_cpu_threads":             true,
+		"p_gpu_name_raw":            true,
+		"p_gpu_vram_gb":             true,
+		"p_ram_total_gb":            true,
+		"p_ram_speed_mhz":           true,
+		"p_storage_type":            true,
+		"p_storage_capacity_gb":     true,
+		"p_resolution_width":        true,
+		"p_resolution_height":       true,
+		"p_consent_show_result":     true,
+		"p_consent_market_research": true,
+	}
+
+	roh, err := json.Marshal(baueAnfrage(&scan.ScanResult{
+		CPUName:         "AMD Ryzen 7 7800X3D",
+		RamTotalGb:      32,
+		RamSteckplaetze: 4, // rein oertlich, darf NICHT auftauchen
+		Riegel:          []scan.RiegelInfo{{KapazitaetBytes: 1}},
+		MainboardName:   "ASUS TUF B650-PLUS", // ebenfalls oertlich
+	}, false))
+	if err != nil {
+		t.Fatalf("Anfrage laesst sich nicht serialisieren: %v", err)
+	}
+
+	var felder map[string]any
+	if err := json.Unmarshal(roh, &felder); err != nil {
+		t.Fatalf("Anfrage laesst sich nicht lesen: %v", err)
+	}
+
+	for name := range felder {
+		if !erlaubt[name] {
+			t.Errorf(
+				"%q wird uebertragen, steht aber nicht in der Liste der "+
+					"zugesagten Felder. Entweder gehoert es in die Vorschau "+
+					"(preview.html.tmpl) und dann auch hier hinein, oder es "+
+					"gehoert gar nicht in die Uebertragung.", name)
+		}
+	}
+
+	// Die Gegenrichtung: Ein zugesagtes Feld darf nicht stillschweigend
+	// verschwinden. Sonst stimmt die Vorschau auch nicht mehr.
+	for name := range erlaubt {
+		if _, da := felder[name]; !da {
+			t.Errorf("%q ist zugesagt, fehlt aber in der Uebertragung", name)
+		}
+	}
+}

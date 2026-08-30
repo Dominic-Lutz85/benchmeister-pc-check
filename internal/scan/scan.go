@@ -244,6 +244,34 @@ func grafikspeicherAusRegistry(name string) int {
 	return 0
 }
 
+/*
+ * Wie viele Speicher-Steckplaetze hat das Board ueberhaupt?
+ *
+ * Ergaenzt am 30.08.2026 auf die Frage von "Misanthrop68" im
+ * PCGH-Forum: "Kann Windows die Anzahl auslesen?" Ja, kann es,
+ * naemlich in Win32_PhysicalMemoryArray.MemoryDevices.
+ *
+ * Die Angabe ist nuetzlich, weil "zwei Riegel verbaut" ohne die Zahl
+ * der Plaetze nichts ueber den Ausbau sagt. Zwei von zwei ist voll,
+ * zwei von vier ist halb.
+ *
+ * Wie alles aus dieser Tabelle kommt der Wert vom Board-Hersteller und
+ * kann fehlen. Dann steht hier 0 und es wird nichts behauptet.
+ */
+func steckplaetze() int {
+	var liste []struct {
+		MemoryDevices uint32
+	}
+	if err := wmi.Query("select MemoryDevices from Win32_PhysicalMemoryArray", &liste); err != nil {
+		return 0
+	}
+	gesamt := 0
+	for _, a := range liste {
+		gesamt += int(a.MemoryDevices)
+	}
+	return gesamt
+}
+
 func arbeitsspeicher(e *ScanResult) {
 	var liste []win32PhysicalMemory
 	q := "select Capacity, Speed, ConfiguredClockSpeed, PartNumber, DeviceLocator, BankLabel from Win32_PhysicalMemory"
@@ -278,6 +306,7 @@ func arbeitsspeicher(e *ScanResult) {
 	}
 
 	e.RamTotalGb = int(summe / (1024 * 1024 * 1024))
+	e.RamSteckplaetze = steckplaetze()
 	if takt > 0 {
 		t := int(takt)
 		e.RamSpeedMhz = &t

@@ -503,12 +503,13 @@ func Speicher(riegel []Riegel) []Befund {
 				"Welcher das ist, steht im Handbuch des Mainboards.",
 			Hintergrund: "Zwei Kanäle arbeiten nebeneinander und verdoppeln die " +
 				"Bandbreite. Stecken alle Riegel im selben, bleibt die Hälfte " +
-				"ungenutzt, obwohl der Rechner voll bestückt aussieht. Auf den " +
-				"meisten Boards mit vier Steckplätzen gehören zwei Riegel in den " +
-				"zweiten und vierten Slot, gezählt vom Prozessor weg, aber das " +
-				"unterscheidet sich von Board zu Board. Anders als beim " +
-				"Speicherprofil hilft hier kein Schalter im BIOS, die Riegel " +
-				"müssen wirklich umgesteckt werden.",
+				"ungenutzt, obwohl der Rechner voll bestückt aussieht. Welche " +
+				"Steckplätze die richtigen sind, steht im Handbuch deines " +
+				"Mainboards und ist meist auch auf dem Board selbst aufgedruckt. " +
+				"Feste Regeln gibt es nicht: Auf manchen Boards sind es der " +
+				"zweite und vierte Steckplatz, auf anderen der erste und dritte. " +
+				"Anders als beim Speicherprofil hilft hier kein Schalter im BIOS, " +
+				"die Riegel müssen wirklich umgesteckt werden.",
 		})
 	}
 

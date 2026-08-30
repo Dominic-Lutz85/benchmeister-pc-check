@@ -103,8 +103,21 @@
            Grund, den Fehler weiterzureichen. Die Befunde weiter unten
            sprachen ohnehin schon von MT/s, auf derselben Seite standen
            also zwei Einheiten fuer dieselbe Zahl. */}}
+      {{/* Die Steckplatzbelegung, ergaenzt am 30.08.2026 auf die Frage
+           von "Misanthrop68" im PCGH-Forum: "Kann Windows die Anzahl
+           auslesen?" Kann es, in Win32_PhysicalMemoryArray.
+
+           Warum das dazugehoert: "32 GB, 4 Riegel" sagt nichts ueber
+           den Ausbau. Vier von vier heisst voll, vier von acht heisst
+           halb, und zwei von zwei heisst, dass Nachruesten nur durch
+           Austauschen geht. Diese Zahl beantwortet die Frage "kann ich
+           noch was dazustecken" ohne Gehaeuse aufschrauben.
+
+           Nur wenn beide Zahlen bekannt sind. Die Steckplatzzahl kommt
+           wie alles hier aus einer Tabelle des Board-Herstellers und
+           fehlt bei manchen. */}}
       <tr><th>Arbeitsspeicher</th><td>
-        {{.Scan.RamTotalGb}} GB{{if .Scan.RamSpeedMhz}}, {{.Scan.RamSpeedMhz}} MT/s{{end}}
+        {{.Scan.RamTotalGb}} GB{{if .Scan.RamSpeedMhz}}, {{.Scan.RamSpeedMhz}} MT/s{{end}}{{if and .Scan.RamSteckplaetze .Scan.Riegel}}, {{len .Scan.Riegel}} von {{.Scan.RamSteckplaetze}} Steckplätzen belegt{{end}}
       </td></tr>
       {{/* Alle Laufwerke einzeln, nicht nur das groesste. Bis 29.08.2026
            stand hier nur StorageType und StorageCapacityGb, und das

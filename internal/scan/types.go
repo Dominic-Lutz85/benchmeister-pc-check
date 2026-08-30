@@ -52,8 +52,18 @@ type ScanResult struct {
 	// nimmt dann den Wert aus dem eigenen Katalog.
 	GPUVramGb *int `json:"gpu_vram_gb"`
 
-	RamTotalGb  int  `json:"ram_total_gb"`
-	RamSpeedMhz *int `json:"ram_speed_mhz"`
+	RamTotalGb int `json:"ram_total_gb"`
+	// Zahl der Speicher-Steckplaetze auf dem Board, 0 wenn unbekannt.
+	// Ergaenzt am 30.08.2026: "zwei Riegel verbaut" sagt ohne diese Zahl
+	// nichts ueber den Ausbau. Zwei von zwei ist voll, zwei von vier
+	// ist halb.
+	// NICHT UEBERTRAGEN, wie die anderen rein oertlichen Angaben. Der
+	// Upload zaehlt seine Felder in baueAnfrage() einzeln auf, ein neues
+	// Feld landet also ohnehin nicht automatisch dort. Das `json:"-"`
+	// macht die Absicht trotzdem sichtbar, damit niemand beim Lesen
+	// raten muss.
+	RamSteckplaetze int  `json:"-"`
+	RamSpeedMhz     *int `json:"ram_speed_mhz"`
 
 	// "SSD", "HDD" oder "unbekannt".
 	StorageType       string `json:"storage_type"`
