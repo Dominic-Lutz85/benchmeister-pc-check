@@ -104,6 +104,19 @@ jobs:
         with:
           subject-path: BenchMeister-PC-Check.exe
 
+      # Auch ohne Release herunterladbar, damit sich ein Probelauf
+      # nachrechnen laesst. Ohne das steht die Pruefsumme nur im
+      # Protokoll, und das ist ohne Anmeldung nicht abrufbar. Beim
+      # Vergleich zweier Baustaende ist genau das aber die Frage.
+      - name: Datei zum Nachrechnen anhaengen
+        uses: actions/upload-artifact@v4
+        with:
+          name: BenchMeister-PC-Check
+          path: BenchMeister-PC-Check.exe
+          # Sieben Tage genuegen. Was laenger aufgehoben werden soll,
+          # gehoert an ein Release.
+          retention-days: 7
+
       - name: An das Release haengen
         if: github.event_name == 'release'
         env:
