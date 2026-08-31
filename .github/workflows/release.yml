@@ -39,9 +39,22 @@ name: Release bauen und beglaubigen
 on:
   release:
     types: [published]
-  # Von Hand ausloesbar, um den Ablauf zu proben, ohne ein Release
-  # anzulegen. Ohne Release wird nichts angehaengt, nur gebaut.
+  # Von Hand ausloesbar, zum Proben und zum Nachliefern.
+  #
+  # Ohne Angabe wird nur gebaut, die Datei haengt dann als Artefakt am
+  # Lauf. Mit einem Tag wird dessen Stand gebaut und die Datei an das
+  # zugehoerige Release gehaengt, bestehende ueberschrieben.
+  #
+  # Das Nachliefern kam am 31.08.2026 dazu, weil die Datei von v1.0.12
+  # mit CGO gebaut worden war und sich deshalb nicht nachbauen liess.
+  # Ohne diesen Weg haette das Release geloescht und neu angelegt
+  # werden muessen.
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag zum Nachliefern, z.B. v1.0.12. Leer lassen zum blossen Proben."
+        required: false
+        default: ""
 
 permissions:
   contents: write      # Datei ans Release haengen
@@ -56,6 +69,12 @@ jobs:
       - name: Quelltext holen
         uses: actions/checkout@v4
         with:
+          # Beim Nachliefern der Stand des Tags, sonst der Stand, auf
+          # dem der Lauf gestartet wurde. Wichtig: Der WORKFLOW kommt
+          # immer aus dem Branch des Laufs, nur der Programmcode aus
+          # dem Tag. Genau deshalb funktioniert das Nachliefern mit
+          # einem Fix, den es im Tag selbst noch nicht gab.
+          ref: ${{ inputs.tag || github.ref }}
           # Voller Verlauf, damit Go den Git-Stempel setzen kann. Mit
           # dem flachen Standard-Klon fehlt er, und die Pruefung weiter
           # unten schlaegt an.
@@ -144,7 +163,8 @@ jobs:
           retention-days: 7
 
       - name: An das Release haengen
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || inputs.tag != ''
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload ${{ github.event.release.tag_name }} BenchMeister-PC-Check.exe --clobber
+          ZIEL: ${{ github.event.release.tag_name || inputs.tag }}
+        run: gh release upload "$env:ZIEL" BenchMeister-PC-Check.exe --clobber
