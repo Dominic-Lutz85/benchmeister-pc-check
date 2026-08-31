@@ -70,7 +70,25 @@ jobs:
       - name: Tests laufen lassen
         run: go test ./...
 
+      # CGO_ENABLED=0 FEST GESETZT, und das ist der Kern der
+      # Reproduzierbarkeit. Gefunden am 31.08.2026 beim Vergleich der
+      # ersten ueber diesen Workflow gebauten Datei mit einem frischen
+      # Klon: Die Pruefsummen wichen ab, und die eingebetteten Angaben
+      # zeigten warum.
+      #
+      #   auf dem GitHub-Runner   CGO_ENABLED=1
+      #   auf dem Entwicklungsrechner  CGO_ENABLED=0
+      #
+      # Go entscheidet das von selbst danach, ob ein C-Compiler im Pfad
+      # liegt. Auf dem Runner liegt einer, auf einem gewoehnlichen
+      # Windows-Rechner nicht. Damit ergibt derselbe Quelltext zwei
+      # verschiedene Dateien, und das Versprechen "bau es selbst und
+      # vergleiche die Pruefsumme" waere gebrochen.
+      #
+      # Das Programm braucht kein CGO: wmi und go-ole sind reines Go.
       - name: Bauen
+        env:
+          CGO_ENABLED: 0
         run: go build -trimpath -ldflags="-s -w" -o BenchMeister-PC-Check.exe .
 
       - name: Git-Stempel pruefen
@@ -85,7 +103,15 @@ jobs:
             Write-Host "::error::Die Datei traegt den Vermerk 'geaendert'."
             exit 1
           }
-          Write-Host "Git-Stempel vorhanden und sauber."
+          # Zweite Pruefung an derselben Stelle: Steht CGO wirklich
+          # aus? Die env-Angabe oben kann bei einem Umbau verloren
+          # gehen, und dann waere die Datei wieder unreproduzierbar,
+          # ohne dass irgendetwas fehlschlaegt.
+          if ($stempel -notmatch "CGO_ENABLED=0") {
+            Write-Host "::error::Die Datei wurde mit CGO gebaut. Dann laesst sie sich auf einem Rechner ohne C-Compiler nicht nachbauen."
+            exit 1
+          }
+          Write-Host "Git-Stempel vorhanden und sauber, CGO ist aus."
 
       - name: Pruefsumme ausgeben
         shell: pwsh

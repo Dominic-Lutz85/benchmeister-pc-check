@@ -74,6 +74,13 @@ try {
     # Dieselben Schalter wie im README und im Release-Text. Wer sie hier
     # aendert, muss sie dort mitaendern, sonst stimmt die Pruefsumme fuer
     # niemanden mehr.
+    # CGO_ENABLED=0 ausdruecklich, nicht dem Zufall ueberlassen.
+    # Go schaltet CGO von selbst ein, sobald ein C-Compiler im Pfad
+    # liegt, und baut dann eine andere Datei. Auf diesem Rechner ist
+    # keiner installiert, auf einem anderen vielleicht schon, und der
+    # GitHub-Runner hat einen. Ohne diese Zeile haengt die Pruefsumme
+    # davon ab, wer gerade baut.
+    $env:CGO_ENABLED = "0"
     go build -trimpath -ldflags="-s -w" -o $Ziel .
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
