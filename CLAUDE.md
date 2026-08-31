@@ -107,3 +107,29 @@ Kommentare erklären das **Warum**, nicht das Was. Ein Kommentar, der
 beschreibt was die Zeile darunter tut, ist überflüssig; einer, der
 sagt warum sie so aussehen muss, verhindert, dass jemand sie in einem
 halben Jahr "aufräumt".
+
+## Vor jedem Push an .github/workflows/
+
+Ein kaputter Workflow scheitert, **bevor** ein einziger Job entsteht.
+In der Actions-Übersicht steht dann nur ein rotes Kreuz ohne Schritte,
+und der Grund ist nirgends zu sehen. Am 31.08.2026 zweimal passiert.
+
+Beide Sprachen deshalb vorher prüfen, das dauert zusammen zehn
+Sekunden:
+
+```bash
+npx --yes js-yaml .github/workflows/release.yml > /dev/null && echo "YAML ok"
+```
+
+```powershell
+$errs = $null
+[System.Management.Automation.Language.Parser]::ParseFile($datei, [ref]$null, [ref]$errs)
+```
+
+**Die Falle, die beide Male zuschlug:** PowerShell-Here-Strings
+(`@" ... "@`) und YAML-Blöcke vertragen sich nicht. Der Inhalt eines
+Here-Strings darf nicht eingerückt sein, ein YAML-Block verlangt genau
+das. Eine Zeile `---` im Text beendet dann das YAML-Dokument.
+
+Mehrzeiligen Text stattdessen als Array einfach zitierter Zeilen bauen:
+eingerückt, ohne Variablenersetzung, ohne Escape-Wirkung des Backticks.

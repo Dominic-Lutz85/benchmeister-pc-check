@@ -172,10 +172,26 @@ jobs:
       # Die Pruefsumme gehoert in den Release-Text, sonst hat niemand
       # etwas zum Vergleichen. Bisher wurde sie von Hand aus der
       # Skriptausgabe hineinkopiert, und bei v1.0.12 ist das prompt
-      # untergegangen: Das Release stand eine halbe Stunde ohne da.
+      # untergegangen.
       #
-      # Angehaengt, nicht ersetzt. Und nur, wenn noch keine drinsteht,
-      # sonst sammeln sich bei jedem Nachliefern neue Absaetze an.
+      # ZWEI SACKGASSEN AM 31.08.2026, beide hier vermerkt, damit sie
+      # niemand erneut nimmt:
+      #
+      # 1. PowerShell-Here-String (@" ... "@). Dessen Inhalt darf nicht
+      #    eingerueckt werden, ein YAML-Block verlangt aber genau das.
+      #    Die Zeile "---" im Text beendete dadurch das YAML-Dokument,
+      #    und der Lauf scheiterte, bevor auch nur ein Job entstand.
+      # 2. Vorlagendatei im Repository. Beim Nachliefern wird der Stand
+      #    des TAGS ausgecheckt, und dort gibt es eine neu angelegte
+      #    Datei noch gar nicht.
+      #
+      # Deshalb ein Array einfach zitierter Zeilen: eingerueckt (YAML
+      # zufrieden), ohne Variablenersetzung und ohne Escape-Wirkung des
+      # Backticks (PowerShell zufrieden), und ohne Abhaengigkeit vom
+      # ausgecheckten Stand.
+      #
+      # Angehaengt statt ersetzt, und nur wenn noch keine Pruefsumme
+      # drinsteht, sonst sammeln sich beim Nachliefern neue Absaetze.
       - name: Pruefsumme in den Release-Text schreiben
         if: github.event_name == 'release' || inputs.tag != ''
         shell: pwsh
@@ -189,33 +205,38 @@ jobs:
             Write-Host "Im Release-Text steht bereits eine Pruefsumme, lasse ihn unveraendert."
             exit 0
           }
-          $anhang = @"
-
----
-
-## Pruefsumme
-
-``````
-$summe
-``````
-
-Nachrechnen mit ``Get-FileHash BenchMeister-PC-Check.exe -Algorithm SHA256``.
-
-Selbst bauen und vergleichen:
-
-``````
-git clone --branch $env:ZIEL --depth 1 https://github.com/Dominic-Lutz85/benchmeister-pc-check.git
-cd benchmeister-pc-check
-`$env:CGO_ENABLED = "0"
-go build -trimpath -ldflags="-s -w" -o BenchMeister-PC-Check.exe .
-``````
-
-Das ergibt bytegleich dieselbe Datei. ``CGO_ENABLED=0`` ist dabei nicht
-optional: Liegt auf dem bauenden Rechner ein C-Compiler, schaltet Go
-CGO von selbst ein und erzeugt eine andere Datei.
-"@
+          $zeilen = @(
+            '',
+            '---',
+            '',
+            '## Pruefsumme',
+            '',
+            '```',
+            $summe,
+            '```',
+            '',
+            'Nachrechnen mit `Get-FileHash BenchMeister-PC-Check.exe -Algorithm SHA256`.',
+            '',
+            'Selbst bauen und vergleichen:',
+            '',
+            '```',
+            ('git clone --branch ' + $env:ZIEL + ' --depth 1 https://github.com/Dominic-Lutz85/benchmeister-pc-check.git'),
+            'cd benchmeister-pc-check',
+            '$env:CGO_ENABLED = "0"',
+            'go build -trimpath -ldflags="-s -w" -o BenchMeister-PC-Check.exe .',
+            '```',
+            '',
+            'Das ergibt bytegleich dieselbe Datei. `CGO_ENABLED=0` ist dabei',
+            'nicht optional: Liegt auf dem bauenden Rechner ein C-Compiler,',
+            'schaltet Go CGO von selbst ein und erzeugt eine andere Datei.',
+            '',
+            'Die Herkunft laesst sich zusaetzlich ohne mich pruefen:',
+            '',
+            '```',
+            'gh attestation verify BenchMeister-PC-Check.exe --repo Dominic-Lutz85/benchmeister-pc-check',
+            '```'
+          )
           $tmp = New-TemporaryFile
-          ($text + $anhang) | Out-File -FilePath $tmp -Encoding utf8
+          ($text + ($zeilen -join "`n")) | Out-File -FilePath $tmp -Encoding utf8
           gh release edit "$env:ZIEL" --notes-file $tmp
           Write-Host "Pruefsumme in den Release-Text geschrieben."
-
