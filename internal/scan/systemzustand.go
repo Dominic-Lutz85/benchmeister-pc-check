@@ -38,10 +38,36 @@ type win32NetworkAdapter struct {
 // jeweilige "Erkannt"-Schalter bleibt false.
 func Systemzustand() SystemzustandInfo {
 	var z SystemzustandInfo
-	systemplatte(&z)
-	virenschutz(&z)
-	netzwerk(&z)
+	// Jede Abfrage einzeln abgesichert. Die WMI-Bruecke wandelt ueber
+	// Reflection um und bricht bei einem unerwarteten Typ mit einem
+	// Panic ab, nicht mit einem Fehler. Am 31.08.2026 hat genau das in
+	// BauformErmitteln() das ganze Programm beim Start mitgenommen,
+	// gemeldet von "Misanthrop68" im PCGH-Forum.
+	//
+	// Einzeln und nicht gemeinsam, damit ein Ausfall die beiden
+	// anderen Werte nicht mitnimmt.
+	ohneAbsturz(func() { systemplatte(&z) })
+	ohneAbsturz(func() { virenschutz(&z) })
+	ohneAbsturz(func() { netzwerk(&z) })
 	return z
+}
+
+/*
+Fuehrt eine Abfrage aus und schluckt einen Absturz.
+
+Das sieht nach schlechtem Stil aus, und normalerweise waere es das
+auch: Ein Panic zeigt einen Programmierfehler an und gehoert nicht
+versteckt. Hier liegt der Fall anders. Die Panics entstehen in einer
+fremden Bibliothek beim Umwandeln von Werten, die je nach Windows-
+Ausgabe, Treiber und Hersteller anders typisiert sind. Das laesst sich
+nicht auf allen Rechnern der Welt vorher ausprobieren.
+
+Die Abwaegung ist eindeutig: Ein fehlender Befund kostet einen
+Hinweis. Ein Absturz beim Start kostet das ganze Programm.
+*/
+func ohneAbsturz(f func()) {
+	defer func() { _ = recover() }()
+	f()
 }
 
 /*

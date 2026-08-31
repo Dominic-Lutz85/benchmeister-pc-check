@@ -43,8 +43,24 @@ Deshalb sagt der Text bei einem Notebook nicht "geht nicht", sondern
 "sieh nach, ob es geht".
 */
 
+/*
+ChassisTypes ist INT32, nicht uint16, und das ist der Unterschied
+zwischen "laeuft" und "stuerzt beim Start ab".
+
+Die SMBIOS-Tabelle fuehrt den Wert als uint16, und genau so steht er
+auch in Microsofts Dokumentation. Die WMI-Bruecke liefert ihn aber als
+int32. Mit []uint16 bricht die Bibliothek beim Umwandeln ab, und zwar
+nicht mit einem Fehler, sondern mit einem Panic:
+
+	reflect: call of reflect.Value.Uint on int32 Value
+
+Gemeldet von "Misanthrop68" im PCGH-Forum am 31.08.2026, keine halbe
+Stunde nach dem Erscheinen von 1.0.13: "Bei mir bricht das Programm
+ohne weitere Angaben beim Starten ab." Es traf jeden Rechner, nicht
+nur seinen.
+*/
 type win32SystemEnclosure struct {
-	ChassisTypes []uint16
+	ChassisTypes []int32
 }
 
 // Bauform eines Rechners.
@@ -69,14 +85,14 @@ ist. Docking Station (12) gehoert bewusst NICHT dazu: Dort steckt
 gegebenenfalls ein Notebook drin, die Station selbst hat keinen
 Speicher.
 */
-var mobileGehaeuse = map[uint16]bool{
+var mobileGehaeuse = map[int32]bool{
 	8: true, 9: true, 10: true, 11: true, 14: true,
 	30: true, 31: true, 32: true,
 }
 
 // Stationaere Bauformen. Alles andere (Server-Gehaeuse, Sonderformen)
 // bleibt unbekannt, statt geraten zu werden.
-var stationaereGehaeuse = map[uint16]bool{
+var stationaereGehaeuse = map[int32]bool{
 	3: true, 4: true, 5: true, 6: true, 7: true, 13: true, 15: true, 16: true,
 }
 
@@ -87,7 +103,19 @@ ChassisTypes ist ein Feld, kein Einzelwert, und manche Geraete melden
 mehrere Eintraege. Ein mobiler Eintrag genuegt: Wer "Notebook" und
 "Main System Chassis" gleichzeitig meldet, ist ein Notebook.
 */
-func BauformErmitteln() Bauform {
+func BauformErmitteln() (bauform Bauform) {
+	// Sicherheitsnetz. Die WMI-Bruecke wandelt Werte ueber Reflection
+	// um und bricht bei einem unerwarteten Typ mit einem Panic ab,
+	// nicht mit einem Fehler. Genau das ist am 31.08.2026 passiert und
+	// hat das ganze Programm beim Start mitgenommen.
+	//
+	// Eine unbekannte Bauform kostet nichts, ein Absturz alles.
+	defer func() {
+		if recover() != nil {
+			bauform = BauformUnbekannt
+		}
+	}()
+
 	var liste []win32SystemEnclosure
 	if err := wmi.Query("select ChassisTypes from Win32_SystemEnclosure", &liste); err != nil {
 		return BauformUnbekannt

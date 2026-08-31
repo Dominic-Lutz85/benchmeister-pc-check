@@ -28,7 +28,7 @@ import (
 // selbst kannte sie nicht. Bei einer Rueckmeldung ("bei mir kommt Fehler
 // X") liess sich damit nicht feststellen, welcher Stand ueberhaupt
 // laeuft. Beim Veroeffentlichen einer neuen Fassung hier mitziehen.
-const version = "1.0.13"
+const version = "1.0.14"
 
 func main() {
 	fmt.Println("BenchMeister PC-Check", version)
