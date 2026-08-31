@@ -154,7 +154,7 @@ type antwort struct {
 // Anzeigen startet den lokalen Server, öffnet die Seite im Standardbrowser
 // und wartet auf die Entscheidung. Gibt die Adresse der Ergebnisseite
 // zurück, oder einen leeren Text, wenn nichts übertragen wurde.
-func Anzeigen(ergebnis *scan.ScanResult, zustand scan.SystemzustandInfo) (string, error) {
+func Anzeigen(ergebnis *scan.ScanResult, zustand scan.SystemzustandInfo, bauform scan.Bauform) (string, error) {
 	rohdaten, err := upload.AlsJSON(ergebnis, false)
 	if err != nil {
 		return "", err
@@ -168,6 +168,10 @@ func Anzeigen(ergebnis *scan.ScanResult, zustand scan.SystemzustandInfo) (string
 	// eigenen Abfrage, die in main.go schon gelaufen ist, hier wird
 	// also ebenfalls nur gerechnet.
 	befunde = append(befunde, pruefung.AlleZustand(zustandFuerPruefung(zustand))...)
+	// Zuletzt die Ratschlaege auf die Bauform anpassen. Bei einem
+	// Notebook sind "zweiten Riegel ergaenzen" und "umstecken" nicht
+	// ohne Weiteres befolgbar, siehe FuerBauform().
+	befunde = pruefung.FuerBauform(befunde, bauform == scan.BauformMobil)
 
 	vorlage, err := template.ParseFS(vorlagen, "assets/preview.html.tmpl")
 	if err != nil {

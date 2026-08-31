@@ -51,7 +51,12 @@ func main() {
 	// deshalb gibt Systemzustand() auch keinen zurueck.
 	zustand := scan.Systemzustand()
 
-	url, err := ui.Anzeigen(ergebnis, zustand)
+	// Bauform des Geraets. Bei einem Notebook sind zwei Ratschlaege
+	// nicht befolgbar ("zweiten Riegel ergaenzen", "umstecken"), siehe
+	// internal/scan/bauform.go.
+	bauform := scan.BauformErmitteln()
+
+	url, err := ui.Anzeigen(ergebnis, zustand, bauform)
 	if err != nil {
 		abbrechen(err)
 	}

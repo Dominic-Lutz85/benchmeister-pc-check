@@ -82,6 +82,18 @@ type Befund struct {
 	Feststellung string
 	// Was man dagegen tun kann. Bewusst konkret, nicht "optimieren Sie".
 	Empfehlung string
+	// Abweichende Empfehlung fuer mobile Geraete, leer wenn dieselbe
+	// gilt. Angelegt am 31.08.2026 nach einem Hinweis von "PCGH_Jacky"
+	// im PCGH-Forum.
+	//
+	// WARUM AM BEFUND UND NICHT IN EINER NACHBEARBEITUNG: Der Befund
+	// weiss selbst am besten, ob sein Rat bei einem Notebook noch
+	// stimmt. Eine Funktion, die spaeter nach Titeln sucht und Texte
+	// austauscht, waere beim ersten umformulierten Titel still kaputt.
+	//
+	// Ausgetauscht wird in FuerBauform(), und ein Test haelt fest, dass
+	// jeder Rat zum Nachruesten eine mobile Fassung mitbringt.
+	EmpfehlungMobil string
 	// Warum das so ist, wie man gegenprueft, welche Ausnahmen es gibt.
 	//
 	// Steht in der Anzeige in einem ZUGEKLAPPTEN Block. Eingefuehrt am
@@ -501,6 +513,8 @@ func Speicher(riegel []Riegel) []Befund {
 				len(riegel), einzigerKanal(kanaele)),
 			Empfehlung: "Einen Riegel in einen Steckplatz des anderen Kanals umstecken. " +
 				"Welcher das ist, steht im Handbuch des Mainboards.",
+			EmpfehlungMobil: "Umstecken hilft, wenn beide Steckplätze erreichbar sind. " +
+				"Bei Notebooks liegt oft nur einer unter einer Klappe.",
 			Hintergrund: "Zwei Kanäle arbeiten nebeneinander und verdoppeln die " +
 				"Bandbreite. Stecken alle Riegel im selben, bleibt die Hälfte " +
 				"ungenutzt, obwohl der Rechner voll bestückt aussieht. Welche " +
@@ -520,6 +534,8 @@ func Speicher(riegel []Riegel) []Befund {
 			Titel:        "Nur ein Speicherriegel verbaut",
 			Feststellung: "Mit einem einzelnen Riegel läuft der Speicher im Einkanalbetrieb.",
 			Empfehlung:   "Einen zweiten, baugleichen Riegel ergänzen.",
+			EmpfehlungMobil: "Vor dem Kauf nachsehen, ob ein Steckplatz frei ist: " +
+				"Bei vielen Notebooks ist der Speicher fest verlötet.",
 			Hintergrund: "Zwei Riegel arbeiten nebeneinander und verdoppeln die Bandbreite. " +
 				"Zwei mal 8 GB sind deshalb schneller als einmal 16 GB. Am deutlichsten " +
 				"merkt man das bei Prozessoren mit eingebauter Grafik, weil die sich den " +
@@ -627,6 +643,31 @@ func Laufwerke(laufwerke []Laufwerk) []Befund {
 // Alle führt sämtliche Prüfungen zusammen.
 func Alle(riegel []Riegel, laufwerke []Laufwerk) []Befund {
 	return append(Speicher(riegel), Laufwerke(laufwerke)...)
+}
+
+/*
+FuerBauform tauscht Empfehlungen aus, die bei einem mobilen Geraet
+nicht befolgbar waeren.
+
+Angewendet wird das erst nach der Pruefung, damit die Pruefungen selbst
+nichts von Gehaeusen wissen muessen und ohne Windows testbar bleiben.
+
+BEI UNBEKANNTER BAUFORM WIRD NICHTS GEAENDERT. Die Gehaeuseart kommt aus
+einer Tabelle, die der Hersteller fuellt, und liegt nicht immer vor.
+Dann bleibt der bisherige Text stehen, der fuer die Mehrheit stimmt.
+*/
+func FuerBauform(befunde []Befund, mobil bool) []Befund {
+	if !mobil {
+		return befunde
+	}
+	angepasst := make([]Befund, len(befunde))
+	for i, b := range befunde {
+		if b.EmpfehlungMobil != "" {
+			b.Empfehlung = b.EmpfehlungMobil
+		}
+		angepasst[i] = b
+	}
+	return angepasst
 }
 
 // Der einzige Kanal aus der Menge. Wird nur aufgerufen, wenn genau
