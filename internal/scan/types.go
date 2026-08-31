@@ -182,3 +182,41 @@ func (l LaufwerkInfo) Medienart() uint16 {
 	}
 	return l.MedienArt
 }
+
+// SystemzustandInfo sind drei Angaben zum laufenden System, die nichts
+// ueber die verbaute Hardware sagen, sondern ueber ihren Zustand.
+// Angelegt am 31.08.2026 nach Vorschlaegen von "cryon1c" im
+// PCGH-Forum.
+//
+// ALLE DREI BLEIBEN AUF DEM RECHNER. Sie stehen bewusst nicht in
+// ScanResult, sondern daneben: Wie voll eine Platte ist und welche
+// Schutzprogramme laufen, geht niemanden etwas an. Das Feld hier hat
+// deshalb gar keine json-Markierung, und baueAnfrage() zaehlt seine
+// Felder ohnehin einzeln auf.
+type SystemzustandInfo struct {
+	// Datentraeger mit Windows darauf, nur die belegte und die
+	// gesamte Groesse. Kein Laufwerksbuchstabe, kein Datentraegername.
+	SystemplatteFreiGb   int
+	SystemplatteGesamtGb int
+	// Ob die Werte ueberhaupt ermittelt werden konnten. Ohne dieses
+	// Feld waere "0 von 0 GB frei" nicht von "nicht auslesbar" zu
+	// unterscheiden, und daraus wuerde ein Fehlalarm.
+	SystemplatteErkannt bool
+
+	// Namen der aktiven Echtzeit-Schutzprogramme. Windows Defender
+	// zaehlt mit, er ist der Normalfall und allein kein Befund.
+	Virenschutz []string
+	// Ob die Abfrage lief. Auf Windows-Server-Ausgaben fehlt der
+	// Namensraum SecurityCenter2 vollstaendig, dann ist eine leere
+	// Liste kein Beweis fuer "kein Schutz".
+	VirenschutzErkannt bool
+
+	// Aushandlungsgeschwindigkeit der aktiven kabelgebundenen
+	// Netzwerkverbindung in Mbit/s. KEINE MAC-Adresse, kein
+	// Adaptername, keine IP.
+	NetzwerkMbit int
+	// Ob eine kabelgebundene Verbindung gefunden wurde. Wer nur per
+	// WLAN online ist, bekommt keinen Befund: Dort ist eine niedrigere
+	// Aushandlung normal und kein Zeichen fuer ein Problem.
+	NetzwerkErkannt bool
+}

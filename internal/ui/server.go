@@ -154,7 +154,7 @@ type antwort struct {
 // Anzeigen startet den lokalen Server, öffnet die Seite im Standardbrowser
 // und wartet auf die Entscheidung. Gibt die Adresse der Ergebnisseite
 // zurück, oder einen leeren Text, wenn nichts übertragen wurde.
-func Anzeigen(ergebnis *scan.ScanResult) (string, error) {
+func Anzeigen(ergebnis *scan.ScanResult, zustand scan.SystemzustandInfo) (string, error) {
 	rohdaten, err := upload.AlsJSON(ergebnis, false)
 	if err != nil {
 		return "", err
@@ -164,6 +164,10 @@ func Anzeigen(ergebnis *scan.ScanResult) (string, error) {
 	// Angaben: kein zusaetzlicher Zugriff aufs System, keine Last, keine
 	// neuen Rechte. Siehe internal/pruefung.
 	befunde := pruefung.Alle(riegelFuerPruefung(ergebnis), laufwerkeFuerPruefung(ergebnis))
+	// Die drei Zustandsbefunde kommen dahinter. Sie stammen aus einer
+	// eigenen Abfrage, die in main.go schon gelaufen ist, hier wird
+	// also ebenfalls nur gerechnet.
+	befunde = append(befunde, pruefung.AlleZustand(zustandFuerPruefung(zustand))...)
 
 	vorlage, err := template.ParseFS(vorlagen, "assets/preview.html.tmpl")
 	if err != nil {
@@ -476,4 +480,22 @@ func laufwerkeFuerPruefung(e *scan.ScanResult) []pruefung.Laufwerk {
 		})
 	}
 	return aus
+}
+
+// zustandFuerPruefung reicht die Zustandswerte ins Pruefpaket weiter.
+//
+// Die Umkopiererei sieht ueberfluessig aus, hat aber denselben Grund
+// wie riegelFuerPruefung und laufwerkeFuerPruefung darueber: Das
+// Pruefpaket kennt das Scan-Paket nicht und braucht deshalb kein
+// Windows. Nur so lassen sich die Befunde auf jedem Rechner testen.
+func zustandFuerPruefung(z scan.SystemzustandInfo) pruefung.Zustand {
+	return pruefung.Zustand{
+		SystemplatteFreiGb:   z.SystemplatteFreiGb,
+		SystemplatteGesamtGb: z.SystemplatteGesamtGb,
+		SystemplatteErkannt:  z.SystemplatteErkannt,
+		Virenschutz:          z.Virenschutz,
+		VirenschutzErkannt:   z.VirenschutzErkannt,
+		NetzwerkMbit:         z.NetzwerkMbit,
+		NetzwerkErkannt:      z.NetzwerkErkannt,
+	}
 }

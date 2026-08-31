@@ -1,0 +1,111 @@
+# Baut die Release-Datei auf GitHub statt auf dem Entwicklungsrechner
+# und bescheinigt ihre Herkunft. Angelegt am 31.08.2026.
+#
+# WARUM, und das ist der eigentliche Punkt:
+#
+# Bisher entstand die exe lokal, und die Pruefsumme im Release-Text
+# stammte vom selben Rechner. Das belegt nur, dass die Datei sich seit
+# dem Hochladen nicht geaendert hat. Es belegt NICHT, dass sie aus dem
+# Quelltext stammt, den jeder hier lesen kann. Wer misstraut, muss
+# genau an dieser Stelle trotzdem vertrauen.
+#
+# Bei diesem Programm wiegt das schwerer als anderswo. Der uebliche
+# Rat "starte es erst in einer virtuellen Maschine" hilft hier nicht:
+# Das Werkzeug liest echte Hardware aus, in einer VM sieht es nur
+# erfundene Geraete. Die Vorsichtsmassnahme, mit der sich sonst jeder
+# behilft, faellt also weg.
+#
+# Der attest-build-provenance-Schritt schliesst die Luecke. Er bindet
+# die Datei kryptografisch an diesen Lauf, diesen Commit und dieses
+# Repository und schreibt den Beleg in ein oeffentliches, nicht mehr
+# aenderbares Protokoll. Pruefen laesst sich das ohne uns:
+#
+#     gh attestation verify BenchMeister-PC-Check.exe \
+#        --repo Dominic-Lutz85/benchmeister-pc-check
+#
+# Fuer oeffentliche Repositories ist das kostenlos.
+#
+# WINDOWS-RUNNER, NICHT LINUX: Ein Cross-Build auf Linux ergaebe eine
+# andere Datei als der lokale Build und damit eine andere Pruefsumme.
+# Das Versprechen aus release-bauen.ps1 ("bau es selbst und
+# vergleiche") haelt nur, wenn hier dieselbe Umgebung laeuft.
+#
+# DIESELBEN SCHALTER wie in release-bauen.ps1, im README und im
+# Release-Text. Wer sie hier aendert, muss sie dort mitaendern, sonst
+# stimmt die Pruefsumme fuer niemanden mehr.
+
+name: Release bauen und beglaubigen
+
+on:
+  release:
+    types: [published]
+  # Von Hand ausloesbar, um den Ablauf zu proben, ohne ein Release
+  # anzulegen. Ohne Release wird nichts angehaengt, nur gebaut.
+  workflow_dispatch:
+
+permissions:
+  contents: write      # Datei ans Release haengen
+  id-token: write      # Kurzlebiges Zertifikat fuer die Beglaubigung
+  attestations: write  # Beleg schreiben
+
+jobs:
+  bauen:
+    runs-on: windows-latest
+
+    steps:
+      - name: Quelltext holen
+        uses: actions/checkout@v4
+        with:
+          # Voller Verlauf, damit Go den Git-Stempel setzen kann. Mit
+          # dem flachen Standard-Klon fehlt er, und die Pruefung weiter
+          # unten schlaegt an.
+          fetch-depth: 0
+
+      - name: Go einrichten
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: false
+
+      - name: Tests laufen lassen
+        run: go test ./...
+
+      - name: Bauen
+        run: go build -trimpath -ldflags="-s -w" -o BenchMeister-PC-Check.exe .
+
+      - name: Git-Stempel pruefen
+        shell: pwsh
+        run: |
+          $stempel = (go version -m BenchMeister-PC-Check.exe) -join "`n"
+          if ($stempel -notmatch "vcs\.revision=") {
+            Write-Host "::error::Die Datei traegt keinen Git-Stempel, die Pruefsumme waere an keinen Commit gebunden."
+            exit 1
+          }
+          if ($stempel -match "vcs\.modified=true") {
+            Write-Host "::error::Die Datei traegt den Vermerk 'geaendert'."
+            exit 1
+          }
+          Write-Host "Git-Stempel vorhanden und sauber."
+
+      - name: Pruefsumme ausgeben
+        shell: pwsh
+        run: |
+          $summe = (Get-FileHash BenchMeister-PC-Check.exe -Algorithm SHA256).Hash
+          $groesse = [math]::Round((Get-Item BenchMeister-PC-Check.exe).Length / 1MB, 2)
+          Write-Host "SHA256 fuer den Release-Text: $summe"
+          Write-Host "Groesse: $groesse MB"
+          # Landet in der Zusammenfassung des Laufs, damit die Summe
+          # nicht aus dem Protokoll gesucht werden muss.
+          "## Pruefsumme`n`n``````$summe```````n`nGroesse: $groesse MB" `
+            | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+      - name: Herkunft beglaubigen
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: BenchMeister-PC-Check.exe
+
+      - name: An das Release haengen
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload ${{ github.event.release.tag_name }} BenchMeister-PC-Check.exe --clobber

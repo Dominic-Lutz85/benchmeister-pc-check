@@ -41,7 +41,17 @@ func main() {
 
 	fmt.Printf("Gefunden: %s, %s\n", ergebnis.CPUName, ergebnis.GPUName)
 
-	url, err := ui.Anzeigen(ergebnis)
+	// Zustand des laufenden Systems: volle Systemplatte, mehrere
+	// Schutzprogramme, Netzwerk unter Gigabit. Steht bewusst getrennt
+	// vom Scan-Ergebnis, weil nichts davon uebertragen wird, siehe
+	// SystemzustandInfo in internal/scan/types.go.
+	//
+	// Faellt eine der drei Abfragen aus, bleibt der jeweilige Wert
+	// unerkannt und es gibt keinen Befund. Ein Fehler ist das nicht,
+	// deshalb gibt Systemzustand() auch keinen zurueck.
+	zustand := scan.Systemzustand()
+
+	url, err := ui.Anzeigen(ergebnis, zustand)
 	if err != nil {
 		abbrechen(err)
 	}
