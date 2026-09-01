@@ -92,6 +92,47 @@ type ScanResult struct {
 	// uebertragen.
 	Riegel    []RiegelInfo   `json:"-"`
 	Laufwerke []LaufwerkInfo `json:"-"`
+
+	// PCIe-Anbindung von Grafikkarte und NVMe-SSDs, ab 01.09.2026.
+	// BLEIBT EBENFALLS LOKAL, `json:"-"` wie die beiden Listen darueber.
+	Pcie []PcieGeraet `json:"-"`
+}
+
+/*
+PcieGeraet ist ein PCIe-Geraet mit der Anbindung, die es GERADE hat.
+
+NUR DER IST-WERT, kein gemeldeter Hoechstwert. Windows liefert auch
+MaxLinkWidth und MaxLinkSpeed, und die Versuchung ist gross, beides
+nebeneinanderzustellen und bei Abweichung zu warnen. Das waere ein
+Fehlalarmautomat, aus zwei voneinander unabhaengigen Gruenden.
+
+ERSTENS stimmt der gemeldete Hoechstwert nicht. Nachgemessen am
+01.09.2026 auf dem Entwicklungsrechner: Eine GeForce RTX 5060 Ti meldet
+MaxLinkWidth 16, obwohl diese Karte von Haus aus mit acht Leitungen
+gebaut ist und die andere Haelfte der Kontakte gar nicht angeschlossen
+hat. Eine Regel "aktuell kleiner als maximal, also Warnung" haette also
+schon auf dem eigenen Rechner Alarm geschlagen, wo alles in Ordnung ist.
+
+ZWEITENS sind auch die Ist-Werte im Leerlauf niedriger als unter Last.
+Stromsparen senkt Generation und Breite, und das ist gewolltes
+Verhalten. Werkzeuge wie GPU-Z haben deshalb einen Last-Test, der die
+Verbindung erst hochzwingt, bevor sie ablesen. Dieses Programm erzeugt
+ausdruecklich keine Last (siehe CLAUDE.md), es kann also nicht
+unterscheiden zwischen "haengt dauerhaft an zu wenigen Leitungen" und
+"doest gerade". Deshalb gibt es hierzu KEINEN Befund, sondern nur eine
+Zeile in der Hardware-Uebersicht mit der Einordnung daneben.
+
+Was die Angabe trotzdem wert ist: Wer weiss, was er verbaut hat, sieht
+hier, in welchem Modus es laeuft. Genau danach war gefragt.
+*/
+type PcieGeraet struct {
+	// Geraetename, wie Windows ihn meldet, z.B. "NVIDIA GeForce RTX 5060
+	// Ti" oder "Standardmaessiger NVM Express-Controller".
+	Name string
+	// Zahl der ausgehandelten Leitungen, also 16 bei x16.
+	Breite uint32
+	// Ausgehandelte PCIe-Generation, also 4 bei PCIe 4.0.
+	Generation uint32
 }
 
 // RiegelInfo ist ein einzelner Speicherbaustein, nur zur lokalen Anzeige.

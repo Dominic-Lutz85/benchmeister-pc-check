@@ -94,6 +94,10 @@ func Auslesen() (*ScanResult, error) {
 	arbeitsspeicher(ergebnis)
 	laufwerk(ergebnis)
 	mainboard(ergebnis)
+	// In ohneAbsturz wie die Zustandswerte. Hier laufen Systemaufrufe mit
+	// rohen Zeigern, und ein Absturz beim Start kostet das ganze
+	// Programm, waehrend ein fehlender Abschnitt nur eine Zeile kostet.
+	ohneAbsturz(func() { pcieAnbindung(ergebnis) })
 
 	return ergebnis, nil
 }

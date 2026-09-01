@@ -67,10 +67,18 @@ type vorlagenDaten struct {
 	Laeuft []pruefung.Befund
 	// Alle Datentraeger als fertige Zeilen fuer die Hardware-Uebersicht.
 	Laufwerke []LaufwerkZeile
+	// Grafikkarte und NVMe-SSDs mit ihrer PCIe-Anbindung. Leer, wenn
+	// nichts auslesbar war, dann faellt der Abschnitt in der Vorlage weg.
+	Pcie []PcieZeile
 }
 
 // LaufwerkZeile ist ein Datentraeger, fertig beschriftet fuer die Anzeige.
 type LaufwerkZeile struct {
+	Beschriftung string
+}
+
+// PcieZeile ist ein PCIe-Geraet, fertig beschriftet fuer die Anzeige.
+type PcieZeile struct {
 	Beschriftung string
 }
 
@@ -121,6 +129,36 @@ func laufwerksZeilen(e *scan.ScanResult) []LaufwerkZeile {
 		gb := l.Bytes / (1000 * 1000 * 1000)
 		zeilen = append(zeilen, LaufwerkZeile{
 			Beschriftung: fmt.Sprintf("%s, %d GB, %s", name, gb, art),
+		})
+	}
+	return zeilen
+}
+
+/*
+ * Baut die Zeilen fuer die PCIe-Anbindung.
+ *
+ * Ergaenzt am 01.09.2026 auf den Wunsch von "Logos_Atum" im PCGH-Forum,
+ * zu sehen mit wie vielen Leitungen was angebunden ist.
+ *
+ * BEWUSST OHNE URTEIL. Keine Farbe, kein "zu wenig", keine Empfehlung.
+ * Warum das so sein muss, steht bei scan.PcieGeraet: Der von Windows
+ * gemeldete Hoechstwert ist nachweislich nicht verlaesslich, und im
+ * Leerlauf sind auch die Ist-Werte niedriger als unter Last. Ein
+ * Programm, das keine Last erzeugt, kann daraus keinen Befund machen,
+ * ohne zu raten.
+ *
+ * Reine Funktion ueber der Liste, damit sie ohne Windows pruefbar
+ * bleibt, wie die Trennung zwischen scan und pruefung es vorsieht.
+ */
+func pcieZeilen(e *scan.ScanResult) []PcieZeile {
+	zeilen := make([]PcieZeile, 0, len(e.Pcie))
+	for _, g := range e.Pcie {
+		name := strings.TrimSpace(g.Name)
+		if name == "" {
+			continue
+		}
+		zeilen = append(zeilen, PcieZeile{
+			Beschriftung: fmt.Sprintf("%s: x%d, PCIe %d.0", name, g.Breite, g.Generation),
 		})
 	}
 	return zeilen
@@ -274,6 +312,7 @@ func Anzeigen(ergebnis *scan.ScanResult, zustand scan.SystemzustandInfo, bauform
 			Kostenpflichtig: kostenpflichtig,
 			Laeuft:          laeuft,
 			Laufwerke:       laufwerksZeilen(ergebnis),
+			Pcie:            pcieZeilen(ergebnis),
 		})
 	})
 
