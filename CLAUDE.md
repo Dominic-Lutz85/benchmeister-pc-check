@@ -85,9 +85,25 @@ eine der beiden Stellen ändert, ändert die andere mit.
 
 ## Veröffentlichen
 
-Nie von Hand. `release-bauen.ps1 v1.0.9` klont den Tag frisch und baut
-daraus, weil ein Bau aus dem Arbeitsordner nachweislich eine andere
-Datei ergibt als ein Klon. Der ganze Ablauf steht im Kopf des Skripts.
+Nie von Hand, und seit dem 31.08.2026 auch nicht mehr auf diesem
+Rechner. Diese Beschreibung stand bis zum 02.09.2026 falsch hier und
+beschrieb noch den Ablauf davor.
+
+**So geht es heute**, drei Schritte:
+
+1. Versionsnummer in `main.go` hochsetzen (`const version`), committen,
+   pushen. Ohne das meldet das Programm später die alte Nummer.
+2. Auf GitHub ein Release mit dem neuen Tag anlegen und
+   **veröffentlichen**.
+3. Fertig. Alles Weitere macht `.github/workflows/release.yml`: Tests,
+   Bau mit `CGO_ENABLED=0`, Prüfung des Git-Stempels, Beglaubigung der
+   Herkunft, Anhängen der Datei ans Release und Eintragen der
+   Prüfsumme in den Release-Text.
+
+`release-bauen.ps1` ist damit NICHT mehr der Weg zum Release, sondern
+das Werkzeug für die Gegenprobe: Es klont den Tag frisch und baut
+daraus, und das Ergebnis muss bytegleich zu dem sein, was am Release
+hängt. Genau das ist das Versprechen "bau es selbst und vergleiche".
 
 Die exe muss `BenchMeister-PC-Check.exe` heißen. Der Download-Knopf auf
 benchmeister.de zeigt fest auf diesen Namen, ebenso die Links in den
