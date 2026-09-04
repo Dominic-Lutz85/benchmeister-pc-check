@@ -1,0 +1,1727 @@
+<title>Werkbank Webdesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+/* Farben immer zuerst im blanken :root, sonst faellt der Standardfall
+   (Systemtheme ohne data-theme) auf undefinierte Werte zurueck. */
+:root{
+  --grund:#EDEFEC; --flaeche:#FBFCFB; --flaeche2:#E4E8E4;
+  --tinte:#17211E; --gedaempft:#5D6B67; --linie:#D2D9D4;
+  --akzent:#0C6B5E; --akzent-tief:#085147; --akzent-weich:#D8E7E2;
+  --heute:#A0691A; --heute-weich:#F2E6D0;
+  --warn:#9A3412;
+  --schatten:0 1px 2px rgba(23,33,30,.06), 0 8px 24px -16px rgba(23,33,30,.25);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --grund:#101615; --flaeche:#18211F; --flaeche2:#1F2A27;
+    --tinte:#E7EDEA; --gedaempft:#94A39E; --linie:#28332F;
+    --akzent:#54C2AE; --akzent-tief:#7FD6C6; --akzent-weich:#12312C;
+    --heute:#DCA84C; --heute-weich:#332714;
+    --warn:#E0855F;
+    --schatten:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.8);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --grund:#101615; --flaeche:#18211F; --flaeche2:#1F2A27;
+  --tinte:#E7EDEA; --gedaempft:#94A39E; --linie:#28332F;
+  --akzent:#54C2AE; --akzent-tief:#7FD6C6; --akzent-weich:#12312C;
+  --heute:#DCA84C; --heute-weich:#332714;
+  --warn:#E0855F;
+  --schatten:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.8);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--grund); color:var(--tinte);
+  font-family:"Source Serif 4","Iowan Old Style",Georgia,serif;
+  font-size:17px; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;
+  font-weight:700; line-height:1.12; text-wrap:balance; margin:0}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+a{color:var(--akzent-tief); text-underline-offset:.18em}
+button{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--akzent); outline-offset:2px; border-radius:3px}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important; transition-duration:.01ms!important}}
+
+/* ---------- Grundgeruest ---------- */
+.huelle{display:grid; grid-template-columns:302px minmax(0,1fr); min-height:100vh}
+.schiene{
+  border-right:1px solid var(--linie); background:var(--flaeche);
+  position:sticky; top:0; height:100vh; display:flex; flex-direction:column;
+}
+.marke{padding:20px 22px 14px; border-bottom:1px solid var(--linie)}
+.marke .wort{font-family:"Bricolage Grotesque",sans-serif; font-weight:800;
+  font-size:20px; letter-spacing:-.02em; display:block}
+.marke .zusatz{font-size:11.5px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--gedaempft); margin-top:4px; display:block}
+.suchfeld{padding:12px 16px; border-bottom:1px solid var(--linie)}
+.suchfeld input{
+  width:100%; padding:8px 10px; border:1px solid var(--linie); border-radius:6px;
+  background:var(--grund); color:var(--tinte); font-family:"IBM Plex Mono",monospace; font-size:13px;
+}
+.schienenliste{overflow-y:auto; flex:1; padding:10px 0 40px}
+
+/* Rueckgrat: eine durchgehende Linie durch den ganzen Lehrplan, gefuellt
+   bis zum erreichten Punkt. Ersetzt bewusst die uebliche Kartenliste. */
+.feld{position:relative}
+.feldkopf{
+  display:grid; grid-template-columns:34px 1fr auto; align-items:center; gap:8px;
+  width:100%; text-align:left; background:none; border:0; cursor:pointer;
+  padding:9px 16px 9px 0;
+}
+.feldkopf:hover .feldname{color:var(--akzent-tief)}
+.nummer{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--gedaempft);
+  text-align:center; position:relative; z-index:1; background:var(--flaeche); padding:2px 0;
+}
+.feld::before{
+  content:""; position:absolute; left:17px; top:0; bottom:0; width:2px;
+  background:var(--linie);
+}
+.feld[data-fertig="ja"]::before{background:var(--akzent)}
+.feldname{font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:14.5px; line-height:1.25}
+.feldzahl{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--gedaempft); padding-right:2px}
+.kapitel{list-style:none; margin:0; padding:0 12px 8px 34px; display:none}
+.feld[aria-expanded="true"] .kapitel{display:block}
+.kapitel li{margin:0}
+.kaplink{
+  display:grid; grid-template-columns:16px 1fr auto; gap:8px; align-items:baseline;
+  width:100%; text-align:left; background:none; border:0; cursor:pointer;
+  padding:5px 6px; border-radius:5px; font-size:13.5px; line-height:1.35; color:var(--gedaempft);
+}
+.kaplink:hover{background:var(--flaeche2); color:var(--tinte)}
+.kaplink[aria-current="true"]{background:var(--akzent-weich); color:var(--tinte); font-weight:600}
+.haken{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--akzent)}
+.kaplink .dauer{font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--gedaempft)}
+.kaplink[data-erledigt="ja"] .titel{text-decoration:line-through; text-decoration-color:var(--linie)}
+
+/* ---------- Kopfzeile mit Tagesplan ---------- */
+.buehne{min-width:0; display:flex; flex-direction:column}
+.tagesband{
+  position:sticky; top:0; z-index:20; background:var(--flaeche);
+  border-bottom:1px solid var(--linie);
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap; padding:11px 30px;
+}
+.tagesband .block{display:flex; align-items:baseline; gap:7px}
+.etikett{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--gedaempft)}
+.wert{font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:16px;
+  font-variant-numeric:tabular-nums}
+.balken{width:150px; height:7px; border-radius:4px; background:var(--flaeche2); overflow:hidden}
+.balken i{display:block; height:100%; background:var(--heute); border-radius:4px; transition:width .3s}
+.balken.voll i{background:var(--akzent)}
+.tagesband select{
+  font-family:"IBM Plex Mono",monospace; font-size:12px; padding:3px 6px;
+  border:1px solid var(--linie); border-radius:5px; background:var(--grund); color:var(--tinte);
+}
+.bandrest{margin-left:auto; display:flex; gap:8px; align-items:center}
+.knopf{
+  font-family:"IBM Plex Mono",monospace; font-size:12px; padding:6px 11px;
+  border:1px solid var(--linie); border-radius:6px; background:var(--flaeche); cursor:pointer;
+}
+.knopf:hover{border-color:var(--akzent); color:var(--akzent-tief)}
+.knopf.stark{background:var(--akzent); border-color:var(--akzent); color:var(--flaeche); font-weight:500}
+.knopf.stark:hover{background:var(--akzent-tief); color:var(--flaeche)}
+.knopf[disabled]{opacity:.45; cursor:default}
+.schienenknopf{display:none}
+
+/* ---------- Lesespalte ---------- */
+.blatt{padding:34px 30px 90px; max-width:820px; width:100%}
+.pfad{font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.06em;
+  color:var(--gedaempft); text-transform:uppercase; margin-bottom:10px}
+.blatt h1{font-size:clamp(28px,4.2vw,40px); letter-spacing:-.025em; margin-bottom:12px}
+.ziel{font-size:19px; line-height:1.5; color:var(--tinte); margin:0 0 26px;
+  border-left:3px solid var(--akzent); padding-left:14px}
+.abschnitt{margin:0 0 30px}
+.abschnitt > h2{
+  font-family:"IBM Plex Mono",monospace; font-weight:500; font-size:11px;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--gedaempft);
+  padding-bottom:6px; border-bottom:1px solid var(--linie); margin-bottom:14px;
+}
+.kernliste{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:13px}
+.kernliste li{display:grid; grid-template-columns:22px 1fr; gap:10px; max-width:66ch}
+.kernliste li::before{
+  content:""; width:7px; height:7px; margin-top:.62em; border-radius:50%;
+  background:var(--akzent); opacity:.55;
+}
+.kernliste b{font-weight:600}
+code{font-family:"IBM Plex Mono",monospace; font-size:.86em; background:var(--flaeche2);
+  padding:.1em .35em; border-radius:4px}
+
+.praxis{background:var(--flaeche); border:1px solid var(--linie); border-radius:9px;
+  padding:18px 20px; box-shadow:var(--schatten)}
+.praxis h3{font-size:17px; margin-bottom:7px}
+.praxis p{margin:0; max-width:62ch}
+.selbstcheck{border-left:3px solid var(--heute); padding-left:14px; color:var(--tinte)}
+.selbstcheck p{margin:0; max-width:62ch; font-style:italic}
+
+.quellen{display:flex; flex-wrap:wrap; gap:8px}
+.quelle{
+  display:inline-flex; align-items:center; gap:7px; text-decoration:none;
+  font-family:"IBM Plex Mono",monospace; font-size:12px;
+  border:1px solid var(--linie); border-radius:20px; padding:6px 13px;
+  color:var(--tinte); background:var(--flaeche);
+}
+.quelle:hover{border-color:var(--akzent); color:var(--akzent-tief)}
+.quelle.film{background:var(--akzent-weich); border-color:transparent}
+.quelle small{color:var(--gedaempft)}
+
+textarea.notiz{
+  width:100%; min-height:110px; resize:vertical; padding:12px 14px;
+  border:1px solid var(--linie); border-radius:8px; background:var(--flaeche);
+  color:var(--tinte); font-family:inherit; font-size:15.5px; line-height:1.55;
+}
+.notizstand{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--gedaempft); margin-top:6px; display:block}
+
+.fussleiste{display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+  border-top:1px solid var(--linie); padding-top:20px; margin-top:34px}
+.fussleiste .weiter{margin-left:auto; font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--gedaempft)}
+
+/* ---------- Startansicht ---------- */
+.aufschlag{display:grid; gap:8px; margin-bottom:32px}
+.aufschlag h1{font-size:clamp(32px,5.5vw,52px); letter-spacing:-.03em}
+.aufschlag p.lead{font-size:19px; max-width:60ch; color:var(--tinte); margin:6px 0 0}
+.zahlenreihe{display:flex; gap:28px; flex-wrap:wrap; margin:24px 0 34px;
+  padding:16px 0; border-top:1px solid var(--linie); border-bottom:1px solid var(--linie)}
+.zahl{display:flex; flex-direction:column; gap:2px}
+.zahl b{font-family:"Bricolage Grotesque",sans-serif; font-size:26px; font-variant-numeric:tabular-nums}
+.heuteliste{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px}
+.heuteliste li{display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:baseline;
+  padding:11px 4px; border-bottom:1px solid var(--linie); cursor:pointer}
+.heuteliste li:hover .htitel{color:var(--akzent-tief)}
+.heuteliste .hnr{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--gedaempft)}
+.htitel{font-weight:600}
+.heuteliste .hfeld{display:block; font-size:13px; color:var(--gedaempft); font-weight:400}
+.leer{color:var(--gedaempft); font-style:italic}
+
+.felderraster{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:1px;
+  background:var(--linie); border:1px solid var(--linie)}
+.feldkachel{background:var(--flaeche); padding:15px 16px; text-align:left; border:0; cursor:pointer;
+  display:flex; flex-direction:column; gap:7px; min-height:112px}
+.feldkachel:hover{background:var(--flaeche2)}
+.feldkachel .knr{font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--gedaempft); letter-spacing:.08em}
+.feldkachel h3{font-size:15.5px}
+.feldkachel .mini{margin-top:auto; height:4px; background:var(--flaeche2); border-radius:3px; overflow:hidden}
+.feldkachel .mini i{display:block; height:100%; background:var(--akzent)}
+
+.projekt{border:1px solid var(--linie); border-radius:9px; background:var(--flaeche);
+  padding:18px 20px; display:flex; flex-direction:column; gap:8px}
+.projekt .stufe{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--gedaempft)}
+.projekt h3{font-size:18px}
+.projekt ul{margin:0; padding-left:20px; max-width:62ch}
+.projekte{display:flex; flex-direction:column; gap:14px}
+.projekt[data-frei="nein"]{opacity:.62}
+.marke-frei{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--akzent)}
+.marke-zu{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--gedaempft)}
+
+/* ---------- Lehrer-Rueckfrage ---------- */
+.lehrer{border:1px dashed var(--linie); border-radius:9px; padding:16px 18px; background:var(--flaeche)}
+.lehrer form{display:flex; gap:8px; flex-wrap:wrap}
+.lehrer input{flex:1; min-width:220px; padding:9px 11px; border:1px solid var(--linie);
+  border-radius:6px; background:var(--grund); color:var(--tinte); font-family:inherit; font-size:15px}
+.antwort{margin-top:14px; white-space:pre-wrap; max-width:66ch; border-left:3px solid var(--akzent-weich); padding-left:14px}
+
+.hinweis{font-size:13.5px; color:var(--gedaempft); max-width:64ch}
+.trenner{height:1px; background:var(--linie); margin:34px 0}
+
+@media (max-width:900px){
+  .huelle{grid-template-columns:1fr}
+  .schiene{position:fixed; z-index:40; width:302px; left:0; top:0; transform:translateX(-100%);
+    transition:transform .22s ease; box-shadow:var(--schatten)}
+  .schiene[data-offen="ja"]{transform:none}
+  .schienenknopf{display:inline-flex}
+  .blatt{padding:26px 20px 80px}
+  .tagesband{padding:10px 18px; gap:14px}
+  .balken{width:96px}
+}
+</style>
+
+<script>
+/* Der Lehrplan als reine Daten. Bewusst getrennt von der Darstellung:
+   so laesst sich ein Kapitel ergaenzen, ohne die App anzufassen.
+   k = Kapitel, min = geschaetzte Minuten, v = [Suchbegriff, Kanalempfehlung],
+   q = Quellen. Videos sind Suchlinks und keine festen IDs, weil einzelne
+   Videos verschwinden und ein toter Link schlimmer ist als eine Suche. */
+const LEHRPLAN = [
+{
+ nr:1, name:"Wie das Web funktioniert",
+ kurz:"Das Fundament. Ohne das raet man beim Rest.",
+ k:[
+  {t:"Vom Klick zur fertigen Seite", min:25,
+   ziel:"Du kannst in eigenen Worten erklaeren, was zwischen der Eingabe einer Adresse und dem sichtbaren Bild passiert.",
+   kern:[
+    "Eine Adresse ist ein Wegweiser, kein Ort. <b>DNS</b> uebersetzt <code>beispiel.de</code> in eine IP-Adresse, das ist die eigentliche Hausnummer im Netz.",
+    "Der Browser stellt eine <b>Anfrage</b> (Request), der Server schickt eine <b>Antwort</b> (Response). In der Antwort steht ein Statuscode: 200 heisst gefunden, 404 nicht gefunden, 301 umgezogen, 500 Server kaputt.",
+    "Die erste Antwort ist fast immer nur das HTML. Darin stehen Verweise auf CSS, Bilder und Skripte, die der Browser danach einzeln nachfordert. Jede dieser Dateien ist eine eigene Anfrage, und genau das ist spaeter der Hebel fuer Ladezeit.",
+    "<b>HTTPS</b> ist HTTP mit Verschluesselung. Ohne ist heute keine Seite mehr vertretbar, Browser markieren sie als unsicher."
+   ],
+   praxis:"Oeffne eine Seite, die du magst, druecke F12, geh auf den Reiter Netzwerk und lade neu. Zaehle, wie viele Anfragen laufen und welche am laengsten dauert. Schreib beides in die Notiz.",
+   check:"Warum sieht man bei einer Seite oft erst Text und danach erst die Bilder?",
+   v:["wie funktioniert das internet einfach erklaert HTTP DNS","Simply Explained / Doktor Whatson"],
+   q:[["MDN: Wie das Web funktioniert","https://developer.mozilla.org/de/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"]]},
+
+  {t:"Dateien, Ordner, Pfade", min:20,
+   ziel:"Du legst ein Projekt so an, dass Verweise auch nach dem Hochladen noch stimmen.",
+   kern:[
+    "<code>index.html</code> ist der Standardname der Startseite. Wer einen Ordner aufruft, bekommt diese Datei, ohne sie zu nennen.",
+    "<b>Relative Pfade</b> gehen vom aktuellen Dokument aus: <code>bilder/foto.jpg</code> liegt daneben, <code>../stil.css</code> eine Ebene hoeher. <b>Absolute Pfade</b> beginnen mit <code>/</code> und gehen immer von der Wurzel der Seite aus.",
+    "Kleinschreibung, keine Leerzeichen, keine Umlaute in Dateinamen. Auf Windows faellt das nicht auf, auf dem Server dann sofort. Das ist der haeufigste Grund, warum lokal alles geht und online nichts.",
+    "Eine brauchbare Grundstruktur: <code>index.html</code>, <code>css/</code>, <code>js/</code>, <code>bilder/</code>. Mehr braucht ein kleines Projekt nicht."
+   ],
+   praxis:"Lege einen Ordner <code>uebung-01</code> mit dieser Struktur an, verlinke ein Bild aus dem Unterordner und oeffne die Datei per Doppelklick im Browser.",
+   check:"Was ist der Unterschied zwischen <code>/bilder/logo.svg</code> und <code>bilder/logo.svg</code>?",
+   v:["relative und absolute pfade html erklaert","Programmieren lernen / Codingtutor"],
+   q:[["MDN: Umgang mit Dateien","https://developer.mozilla.org/de/docs/Learn_web_development/Getting_started/Environment_setup/Dealing_with_files"]]},
+
+  {t:"Browser, Rendering und die Entwicklerwerkzeuge", min:30,
+   ziel:"Du kannst jede fremde Seite auseinandernehmen und siehst, warum ein Element so aussieht, wie es aussieht.",
+   kern:[
+    "Der Browser baut aus HTML den <b>DOM</b> (die Baumstruktur des Dokuments) und aus CSS das Regelwerk dazu. Beides zusammen ergibt das Layout, dann wird gezeichnet.",
+    "Die <b>Entwicklerwerkzeuge</b> (F12) sind das wichtigste Lernwerkzeug ueberhaupt. Reiter Elemente zeigt den echten Baum, rechts daneben stehen alle wirkenden CSS-Regeln, durchgestrichene wurden ueberschrieben.",
+    "Du kannst Werte direkt im Browser aendern und sofort sehen, was passiert. Nichts davon wird gespeichert, ein Neuladen setzt alles zurueck. Genau deshalb kann man dort gefahrlos alles ausprobieren.",
+    "Der Reiter Konsole zeigt Fehler. Wenn etwas nicht funktioniert, ist das die erste Stelle, an der man schaut, nicht die letzte."
+   ],
+   praxis:"Such dir eine Seite mit einem Knopf. Finde in den Entwicklerwerkzeugen heraus, welche Schriftart, welche Farbe und welchen Innenabstand er hat, und aendere seine Hintergrundfarbe live.",
+   check:"Warum steht in der CSS-Spalte manchmal eine Regel durchgestrichen da?",
+   v:["chrome devtools tutorial deutsch anfaenger","Chrome for Developers / Lars Jung"],
+   q:[["Chrome DevTools Dokumentation","https://developer.chrome.com/docs/devtools"]]},
+
+  {t:"Domain, Hosting, Veroeffentlichen", min:20,
+   ziel:"Du weisst, was eine Seite braucht, um oeffentlich erreichbar zu sein, und was das ungefaehr kostet.",
+   kern:[
+    "Drei getrennte Dinge: die <b>Domain</b> (der Name, jaehrliche Miete), der <b>Speicherplatz</b> (wo die Dateien liegen) und das <b>Zertifikat</b> fuer HTTPS (heute fast ueberall kostenlos dabei).",
+    "Eine Seite aus HTML, CSS und Bildern braucht keinen teuren Server. Statisches Hosting reicht und ist bei Anbietern wie Netlify, Cloudflare Pages oder GitHub Pages fuer kleine Projekte kostenlos.",
+    "Erst wenn serverseitig etwas passieren soll (Datenbank, Login, Formularversand), braucht es mehr. Diese Grenze zu kennen spart Kunden viel Geld und dir viel Aerger.",
+    "Die Domain gehoert immer dem Kunden, nicht dir. Zugangsdaten fuer Domain und Hosting bleiben in seiner Hand, du bekommst Zugriff. Alles andere raecht sich beim Abschied."
+   ],
+   praxis:"Lade deinen Ordner aus Kapitel 2 bei einem kostenlosen statischen Hoster hoch und ruf ihn ueber die vergebene Adresse auf dem Handy auf.",
+   check:"Warum braucht eine reine HTML-Seite keinen Server mit PHP oder Datenbank?",
+   v:["statische website kostenlos hosten netlify github pages","Netlify / Fireship"],
+   q:[["GitHub Pages: Schnellstart","https://docs.github.com/de/pages/quickstart"]]},
+
+  {t:"Werkzeugkasten einrichten", min:25,
+   ziel:"Dein Rechner ist arbeitsbereit, und du weisst, wofuer jedes Werkzeug da ist.",
+   kern:[
+    "<b>Editor:</b> VS Code ist der Standard. Wichtige Erweiterungen zum Start: Live Server (Seite laedt bei jedem Speichern neu), Prettier (formatiert automatisch), und sonst erstmal nichts.",
+    "<b>Browser:</b> mindestens zwei, davon einer aus einer anderen Familie (Firefox neben Chrome). Was in beiden geht, geht meistens ueberall.",
+    "<b>Git:</b> deine Sicherung und deine Zeitmaschine. Kommt ausfuehrlich in Lernfeld 11, aber installiere es jetzt, damit es da ist.",
+    "Widerstehe dem Werkzeugrausch. Jedes Werkzeug, das du nicht erklaeren kannst, ist eine Fehlerquelle, die du spaeter nicht findest."
+   ],
+   praxis:"Installiere VS Code mit Live Server, oeffne dein Uebungsprojekt darin und aendere eine Ueberschrift. Der Browser soll ohne dein Zutun aktualisieren.",
+   check:"Was macht Prettier, und warum ist einheitliche Formatierung mehr als Kosmetik?",
+   v:["vs code einrichten webentwicklung deutsch 2025","Programmieren Starten / Coding Crashkurse"],
+   q:[["VS Code Dokumentation","https://code.visualstudio.com/docs"]]}
+ ]},
+
+{
+ nr:2, name:"HTML: Struktur und Bedeutung",
+ kurz:"Das Skelett. Wer hier sauber baut, spart sich spaeter die Haelfte.",
+ k:[
+  {t:"Das Dokumentgeruest", min:25,
+   ziel:"Du schreibst eine gueltige HTML-Seite aus dem Kopf.",
+   kern:[
+    "Jede Seite beginnt mit <code>&lt;!DOCTYPE html&gt;</code>, dann <code>&lt;html lang=\"de\"&gt;</code>. Die Sprachangabe ist keine Formalie: Vorleseprogramme, Silbentrennung und Suchmaschinen haengen daran.",
+    "Der <code>&lt;head&gt;</code> ist unsichtbar und enthaelt Angaben ueber das Dokument: Zeichensatz (<code>&lt;meta charset=\"utf-8\"&gt;</code>, sonst zerbroeseln die Umlaute), Titel, Beschreibung, Verweis aufs CSS.",
+    "Der <code>&lt;title&gt;</code> steht im Browsertab und ist die Ueberschrift in jedem Suchergebnis. Er ist einer der wenigen Texte, die zweimal wirken.",
+    "Der <code>&lt;meta name=\"viewport\"&gt;</code> ist Pflicht, sonst zeigt jedes Handy die Seite herausgezoomt wie eine Desktop-Ansicht."
+   ],
+   praxis:"Schreib das Geruest von Hand ab, ohne Autovervollstaendigung. Danach einmal mit dem Kuerzel <code>!</code> plus Tabulatortaste in VS Code und vergleiche.",
+   check:"Was passiert genau, wenn die Zeile mit dem Viewport fehlt?",
+   v:["html grundgeruest erklaert head meta viewport","Programmieren lernen"],
+   q:[["MDN: Der Kopf eines HTML-Dokuments","https://developer.mozilla.org/de/docs/Learn_web_development/Core/Structuring_content/Webpage_metadata"]]},
+
+  {t:"Text, Listen und Links", min:30,
+   ziel:"Du gliederst beliebigen Rohtext korrekt in HTML.",
+   kern:[
+    "Ueberschriften <code>h1</code> bis <code>h6</code> bilden eine <b>Gliederung</b>, keine Schriftgroessen. Genau ein <code>h1</code> pro Seite, keine Ebene ueberspringen. Wie gross etwas aussieht, entscheidet spaeter CSS.",
+    "<code>&lt;strong&gt;</code> heisst wichtig, <code>&lt;em&gt;</code> heisst betont. <code>&lt;b&gt;</code> und <code>&lt;i&gt;</code> sind reine Optik ohne Bedeutung und deshalb meist die falsche Wahl.",
+    "Listen: <code>ul</code> ohne Reihenfolge, <code>ol</code> mit. Navigationen sind fast immer Listen, auch wenn man das spaeter nicht mehr sieht.",
+    "Ein Linktext muss allein verstaendlich sein. Wer 'hier klicken' schreibt, macht die Seite fuer Vorleseprogramme unbrauchbar, weil die sich oft nur die Links vorlesen lassen."
+   ],
+   praxis:"Nimm einen Artikel aus dem Netz, kopiere den reinen Text und baue ihn als HTML nach: Ueberschriften, Absaetze, Listen, Links. Kein CSS.",
+   check:"Warum ist es falsch, ein h3 zu nehmen, nur weil h2 zu gross aussieht?",
+   v:["html ueberschriften semantik richtig verwenden","Kevin Powell / Web Dev Simplified"],
+   q:[["MDN: Text strukturieren","https://developer.mozilla.org/de/docs/Learn_web_development/Core/Structuring_content/Headings_and_paragraphs"]]},
+
+  {t:"Bilder, Medien und Formate", min:30,
+   ziel:"Du baust Bilder so ein, dass sie schnell laden und auch ohne Sicht verstaendlich sind.",
+   kern:[
+    "Das <code>alt</code>-Attribut beschreibt, was auf dem Bild <b>passiert</b>, nicht wie die Datei heisst. Rein dekorative Bilder bekommen <code>alt=\"\"</code>, damit Vorleseprogramme sie ueberspringen.",
+    "Formate: <b>SVG</b> fuer Logos und Symbole (beliebig skalierbar, winzig), <b>WebP oder AVIF</b> fuer Fotos, JPEG als Rueckfall. PNG nur, wenn Transparenz mit harten Kanten noetig ist.",
+    "Immer <code>width</code> und <code>height</code> angeben, auch wenn CSS die Groesse bestimmt. Sonst springt das Layout beim Nachladen, und genau das misst Google als Ruckeln.",
+    "<code>loading=\"lazy\"</code> bei allem, was beim Laden noch nicht sichtbar ist. Beim ersten grossen Bild oben aber nicht, das soll ja sofort kommen."
+   ],
+   praxis:"Bau eine Seite mit drei Fotos. Schreib fuer jedes ein alt-Attribut, das jemandem am Telefon das Bild erklaert. Lass die Datei danach durch ein Kompressionswerkzeug laufen und vergleiche die Groesse.",
+   check:"Wann ist ein leeres alt-Attribut die richtige Wahl, und wann ein Fehler?",
+   v:["bilder fuer webseiten optimieren webp alt text","Kevin Powell / web.dev"],
+   q:[["MDN: Bilder in HTML","https://developer.mozilla.org/de/docs/Learn_web_development/Core/Structuring_content/HTML_images"]]},
+
+  {t:"Tabellen, und wann sie richtig sind", min:20,
+   ziel:"Du erkennst echte Tabellendaten und baust sie zugaenglich auf.",
+   kern:[
+    "Tabellen sind fuer <b>Daten in Zeilen und Spalten</b>, niemals fuer Layout. Das war in den 90ern ueblich und ist heute ein Fehler.",
+    "<code>&lt;th&gt;</code> statt <code>&lt;td&gt;</code> fuer Kopfzellen, dazu <code>scope=\"col\"</code> oder <code>scope=\"row\"</code>. Erst damit weiss ein Vorleseprogramm, zu welcher Spalte ein Wert gehoert.",
+    "Eine <code>&lt;caption&gt;</code> sagt in einem Satz, was die Tabelle zeigt. Kostet nichts und macht sie sofort verstaendlicher.",
+    "Auf kleinen Bildschirmen sind breite Tabellen ein Problem. Loesung: die Tabelle in einen Behaelter mit <code>overflow-x:auto</code> setzen, damit nur sie scrollt und nicht die ganze Seite."
+   ],
+   praxis:"Baue eine Preistabelle mit drei Spalten und Kopfzeile, richtig ausgezeichnet, und mach sie auf dem Handy seitlich scrollbar.",
+   check:"Woran erkennst du, dass ein Inhalt keine Tabelle sein sollte?",
+   v:["html tabellen barrierefrei th scope caption","MDN / Kevin Powell"],
+   q:[["MDN: Tabellen","https://developer.mozilla.org/de/docs/Learn_web_development/Core/Structuring_content/HTML_table_basics"]]},
+
+  {t:"Formulare", min:35,
+   ziel:"Du baust ein Formular, das man auch mit der Tastatur allein ausfuellen kann.",
+   kern:[
+    "Jedes Eingabefeld braucht ein <code>&lt;label for=\"...\"&gt;</code>, das auf seine <code>id</code> zeigt. Dann vergroessert sich die Klickflaeche, und Vorleseprogramme sagen an, worum es geht. Ein Platzhaltertext ersetzt kein Label, er verschwindet beim Tippen.",
+    "Der richtige <code>type</code> aendert die Handytastatur: <code>email</code>, <code>tel</code>, <code>number</code>, <code>date</code>. Das ist der billigste Komfortgewinn, den es gibt.",
+    "Der Browser prueft schon von selbst: <code>required</code>, <code>minlength</code>, <code>pattern</code>. Erst wenn das nicht reicht, kommt JavaScript dazu.",
+    "Fehlermeldungen gehoeren neben das Feld, in verstaendlicher Sprache, und sie sagen, wie man es richtig macht. Nicht 'ungueltige Eingabe', sondern 'Bitte eine Adresse mit @ eingeben'."
+   ],
+   praxis:"Baue ein Kontaktformular mit Name, E-Mail, Nachricht und Absendeknopf. Fuelle es einmal komplett nur mit Tabulator- und Eingabetaste aus, ohne Maus.",
+   check:"Warum ist ein Platzhaltertext als einzige Beschriftung ein Problem?",
+   v:["html formulare label accessibility deutsch","Kevin Powell / Web Dev Simplified"],
+   q:[["MDN: Formulare","https://developer.mozilla.org/de/docs/Learn_web_development/Extensions/Forms"]]},
+
+  {t:"Semantik: die richtigen Bausteine", min:30,
+   ziel:"Du benutzt HTML-Elemente nach ihrer Bedeutung und nicht als neutrale Kisten.",
+   kern:[
+    "<code>header</code>, <code>nav</code>, <code>main</code>, <code>article</code>, <code>section</code>, <code>aside</code>, <code>footer</code> beschreiben Rollen. Ein <code>div</code> beschreibt nichts, es ist die Notloesung, wenn kein passendes Element existiert.",
+    "Genau ein <code>&lt;main&gt;</code> pro Seite. Vorleseprogramme koennen direkt dorthin springen und die Navigation ueberspringen, das ist fuer taegliche Nutzer ein riesiger Unterschied.",
+    "Ein <code>&lt;button&gt;</code> ist ein Knopf, ein <code>&lt;a&gt;</code> fuehrt woanders hin. Ein <code>div</code> mit Klick-Ereignis sieht aus wie ein Knopf, ist aber mit der Tastatur nicht erreichbar. Das ist einer der haeufigsten Fehler ueberhaupt.",
+    "Semantik ist kein Selbstzweck: sie liefert Barrierefreiheit, Suchmaschinenverstaendnis und lesbaren Code in einem, ohne Zusatzaufwand."
+   ],
+   praxis:"Nimm deine Artikelseite aus Kapitel 2 und ersetze alle divs durch passende semantische Elemente. Pruefe die Gliederung danach in den Entwicklerwerkzeugen unter Barrierefreiheit.",
+   check:"Wann ist ein <code>div</code> tatsaechlich die richtige Wahl?",
+   v:["semantic html erklaert section article div unterschied","Kevin Powell"],
+   q:[["MDN: Struktur eines Dokuments","https://developer.mozilla.org/de/docs/Learn_web_development/Core/Structuring_content/Structuring_documents"]]}
+ ]},
+{
+ nr:3, name:"CSS: Grundlagen",
+ kurz:"Die Sprache der Gestaltung. Erst die Regeln, dann die Wirkung.",
+ k:[
+  {t:"Selektoren, Kaskade, Spezifitaet", min:35,
+   ziel:"Du kannst erklaeren, warum eine Regel gewinnt und eine andere nicht.",
+   kern:[
+    "CSS entscheidet Konflikte in dieser Reihenfolge: <b>Herkunft</b>, dann <b>Spezifitaet</b>, dann <b>Reihenfolge im Code</b>. Bei gleicher Spezifitaet gewinnt die spaetere Regel.",
+    "Spezifitaet als Zahlentripel lesen: ID = (1,0,0), Klasse oder Attribut oder Pseudoklasse = (0,1,0), Element = (0,0,1). Eine ID schlaegt damit hundert Klassen, und das ist der Grund, warum man IDs in CSS meidet.",
+    "<code>!important</code> ist kein Werkzeug, sondern eine Kapitulation. Wer es einmal setzt, braucht es beim naechsten Mal wieder. Loesung ist fast immer ein einfacherer Selektor, nicht ein staerkerer.",
+    "<b>Vererbung</b> ist etwas anderes als Kaskade: Schrift, Farbe und Zeilenhoehe geben sich an Kindelemente weiter, Abstaende und Rahmen nicht. Deshalb setzt man Schrift einmal am <code>body</code> und ist fertig."
+   ],
+   praxis:"Bau eine Seite mit drei Regeln, die absichtlich um dasselbe Element streiten. Sag vorher voraus, welche gewinnt, und pruefe es in den Entwicklerwerkzeugen.",
+   check:"Warum gilt die Empfehlung, in CSS keine IDs als Selektoren zu benutzen?",
+   v:["css spezifitaet kaskade erklaert deutsch","Kevin Powell"],
+   q:[["MDN: Kaskade und Vererbung","https://developer.mozilla.org/de/docs/Learn_web_development/Core/Styling_basics/Handling_conflicts"]]},
+
+  {t:"Das Boxmodell", min:30,
+   ziel:"Du berechnest im Kopf, wie breit ein Element am Ende wirklich ist.",
+   kern:[
+    "Jedes Element ist eine Schachtel aus vier Ringen: Inhalt, <b>padding</b> (Innenabstand), <b>border</b> (Rahmen), <b>margin</b> (Aussenabstand).",
+    "<code>box-sizing:border-box</code> gehoert in jedes Projekt ganz oben hin. Damit meint <code>width:300px</code> tatsaechlich 300 Pixel inklusive Rahmen und Innenabstand, statt 300 plus Zugaben.",
+    "Aussenabstaende benachbarter Elemente <b>fallen zusammen</b> (margin collapsing): 20px unten und 30px oben ergeben 30px, nicht 50px. Das ueberrascht jeden Anfaenger genau einmal.",
+    "Deshalb ist es meist ruhiger, Abstaende zwischen Geschwistern per <code>gap</code> im Flex- oder Grid-Behaelter zu setzen statt per margin an jedem Kind."
+   ],
+   praxis:"Setze eine Box auf 300px Breite mit 20px padding und 5px border, einmal mit und einmal ohne border-box, und miss beide in den Entwicklerwerkzeugen.",
+   check:"Wie breit ist eine Box mit width:200px, padding:16px, border:2px bei content-box?",
+   v:["css box model erklaert border-box deutsch","Kevin Powell / Programmieren lernen"],
+   q:[["MDN: Das Boxmodell","https://developer.mozilla.org/de/docs/Learn_web_development/Core/Styling_basics/Box_model"]]},
+
+  {t:"Einheiten und Farbe", min:30,
+   ziel:"Du waehlst Einheiten begruendet statt aus Gewohnheit.",
+   kern:[
+    "<code>rem</code> haengt an der Grundschriftgroesse des Browsers und respektiert damit die Einstellung des Nutzers. <code>px</code> tut das nicht. Fuer Schriftgroessen deshalb rem, fuer Rahmen und Haarlinien ruhig px.",
+    "<code>%</code> bezieht sich auf das Elternelement, <code>vw/vh</code> auf das Fenster, <code>ch</code> auf die Breite einer Null in der aktuellen Schrift. <code>ch</code> ist ideal fuer Zeilenlaengen: <code>max-width:65ch</code> ist besser begruendet als 700px.",
+    "Farbe: <code>hsl()</code> ist von Hand steuerbar (Farbton, Saettigung, Helligkeit), <code>oklch()</code> ist neuer und rechnet in wahrgenommener Helligkeit. Wer in oklch nur den Farbton dreht, behaelt gleich helle Farben, in hsl nicht.",
+    "Farbe hat immer ein Gegenstueck: den Kontrast zum Hintergrund. Diese Pruefung kommt in Lernfeld 7 und entscheidet mit, ob eine Farbe ueberhaupt in Frage kommt."
+   ],
+   praxis:"Baue eine Farbpalette aus fuenf Werten in hsl, dann dieselbe in oklch. Aendere in beiden nur den Farbton und vergleiche, ob die Helligkeit gleich bleibt.",
+   check:"Warum kann eine Seite mit px-Schriftgroessen fuer sehbehinderte Nutzer ein Problem sein?",
+   v:["css einheiten rem em vw ch erklaert","Kevin Powell"],
+   q:[["MDN: Werte und Einheiten","https://developer.mozilla.org/de/docs/Learn_web_development/Core/Styling_basics/Values_and_units"]]},
+
+  {t:"Typografie in CSS", min:35,
+   ziel:"Du stellst Text so ein, dass er ueber laengere Strecken angenehm lesbar bleibt.",
+   kern:[
+    "Schrift laedt man ueber <code>@font-face</code> oder einen Dienst. Immer eine echte Rueckfallkette angeben (<code>\"Meine Schrift\", Georgia, serif</code>), sonst zeigt der Browser bei einem Fehler die Standardschrift und die Seite kippt.",
+    "<code>font-display:swap</code> sorgt dafuer, dass der Text sofort in der Rueckfallschrift erscheint, statt unsichtbar zu bleiben, bis die Schrift geladen ist.",
+    "Zeilenhoehe: etwa 1,5 bei Fliesstext, deutlich enger (1,1 bis 1,25) bei grossen Ueberschriften. Je groesser die Schrift, desto weniger Durchschuss braucht sie.",
+    "<code>text-wrap:balance</code> fuer Ueberschriften verteilt die Woerter gleichmaessig auf die Zeilen und verhindert eine einsame letzte Silbe. Eine Zeile Code, sichtbarer Unterschied."
+   ],
+   praxis:"Setze denselben Absatz dreimal: mit 45, 65 und 110 Zeichen Zeilenlaenge. Lies alle drei laut und entscheide selbst.",
+   check:"Warum braucht eine 48px-Ueberschrift eine kleinere Zeilenhoehe als ein 17px-Absatz?",
+   v:["web typografie css line-height schriftgroesse tutorial","Kevin Powell / Design Course"],
+   q:[["MDN: Text gestalten","https://developer.mozilla.org/de/docs/Learn_web_development/Core/Text_styling/Fundamentals"]]},
+
+  {t:"Eigene Eigenschaften (CSS-Variablen)", min:25,
+   ziel:"Du legst ein Farb- und Abstandssystem an, das an einer Stelle aenderbar ist.",
+   kern:[
+    "Deklariert wird mit zwei Bindestrichen im <code>:root</code>, benutzt mit <code>var()</code>: <code>--akzent:#0C6B5E</code>, dann <code>color:var(--akzent)</code>.",
+    "Der grosse Unterschied zu Variablen in Praeprozessoren: diese leben im Browser. Man kann sie zur Laufzeit umschreiben, und genau so baut man einen hellen und einen dunklen Modus mit einem einzigen Regelblock.",
+    "<code>var(--x, blau)</code> nimmt blau, falls <code>--x</code> nicht gesetzt ist. Nuetzlich fuer Komponenten, die auch ohne Systemdatei funktionieren sollen.",
+    "Vergib Namen nach <b>Rolle</b>, nicht nach Aussehen: <code>--flaeche</code> und <code>--akzent</code> statt <code>--hellgrau</code> und <code>--gruen</code>. Sonst heisst deine Variable im dunklen Modus hellgrau und ist dunkel."
+   ],
+   praxis:"Zieh alle Farben deiner Uebungsseite in <code>:root</code> und stell danach in einer Media Query fuer den dunklen Modus nur die Variablen um, keine einzige Komponentenregel.",
+   check:"Warum ist <code>--farbe-blau</code> ein schlechterer Name als <code>--farbe-akzent</code>?",
+   v:["css custom properties variablen dark mode tutorial","Kevin Powell"],
+   q:[["MDN: Eigene CSS-Eigenschaften","https://developer.mozilla.org/de/docs/Web/CSS/--*"]]}
+ ]},
+
+{
+ nr:4, name:"Layout",
+ kurz:"Vom Stapel zur Seite. Hier entsteht der groesste Sprung.",
+ k:[
+  {t:"Normalfluss, display und Positionierung", min:30,
+   ziel:"Du verstehst, was der Browser von allein tut, bevor du eingreifst.",
+   kern:[
+    "Ohne CSS stapelt der Browser Blockelemente untereinander und setzt Inline-Elemente nebeneinander in den Textfluss. Das ist der <b>Normalfluss</b>, und er ist oft schon fast richtig.",
+    "<code>position:relative</code> verschiebt ein Element, laesst seinen Platz aber frei. <code>absolute</code> nimmt es aus dem Fluss und orientiert es am naechsten positionierten Vorfahren. <code>fixed</code> haelt es am Fenster, <code>sticky</code> laesst es mitlaufen und dann kleben.",
+    "<code>sticky</code> funktioniert nur, wenn ein Versatz gesetzt ist (<code>top:0</code>) und kein Vorfahre <code>overflow:hidden</code> hat. Das ist der Grund, warum es scheinbar grundlos nicht klebt.",
+    "Absolute Positionierung ist fuer Ausnahmen da: ein Abzeichen auf einer Karte, ein Schliessen-Kreuz. Ein ganzes Layout so zu bauen, faellt spaetestens auf dem Handy auseinander."
+   ],
+   praxis:"Setz ein Abzeichen in die obere rechte Ecke einer Karte mit relative und absolute. Danach mach eine Kopfzeile sticky und finde heraus, was sie kaputt macht.",
+   check:"Woran erkennt ein absolut positioniertes Element, worauf es sich bezieht?",
+   v:["css position relative absolute sticky erklaert deutsch","Kevin Powell"],
+   q:[["MDN: Positionierung","https://developer.mozilla.org/de/docs/Learn_web_development/Core/CSS_layout/Positioning"]]},
+
+  {t:"Flexbox", min:40,
+   ziel:"Du ordnest Elemente in einer Richtung sicher an, ohne zu raten.",
+   kern:[
+    "Flexbox denkt in <b>einer</b> Achse. <code>flex-direction</code> legt fest, welche das ist. <code>justify-content</code> verteilt entlang dieser Achse, <code>align-items</code> quer dazu. Wer die beiden verwechselt, verwechselt sie immer wieder, bis er sich die Achse bewusst macht.",
+    "<code>gap</code> ersetzt die alten Rand-Tricks komplett und erzeugt nie einen Abstand am Rand.",
+    "<code>flex:1</code> ist die Kurzform fuer wachsen, schrumpfen und Grundbreite null. Fuer gleich breite Spalten ist das die einfachste Loesung.",
+    "Typische Faelle: Navigationsleiste, Knopfgruppe, Karte mit Text oben und Knopf unten (<code>margin-top:auto</code> am Knopf schiebt ihn ans Ende)."
+   ],
+   praxis:"Baue eine Kopfzeile mit Logo links und Navigation rechts, danach eine Kartenreihe, in der alle Knoepfe auf einer Linie liegen, obwohl die Texte verschieden lang sind.",
+   check:"Welche Eigenschaft brauchst du, wenn du bei <code>flex-direction:column</code> horizontal zentrieren willst?",
+   v:["flexbox tutorial deutsch justify-content align-items","Kevin Powell / Programmieren lernen"],
+   q:[["MDN: Flexbox","https://developer.mozilla.org/de/docs/Learn_web_development/Core/CSS_layout/Flexbox"],["Flexbox Froggy (Spiel)","https://flexboxfroggy.com/#de"]]},
+
+  {t:"Grid", min:45,
+   ziel:"Du baust zweidimensionale Layouts, die sich ohne Media Query anpassen.",
+   kern:[
+    "Grid denkt in Zeilen <b>und</b> Spalten gleichzeitig. <code>grid-template-columns</code> legt die Spalten fest, <code>fr</code> ist der uebrige Platz als Anteil.",
+    "Die wichtigste Zeile ueberhaupt: <code>grid-template-columns:repeat(auto-fill,minmax(240px,1fr))</code>. Damit passt sich ein Kartenraster von allein an jede Breite an, ohne eine einzige Media Query.",
+    "Bereiche benennen macht komplexe Layouts lesbar: <code>grid-template-areas</code> zeichnet das Layout als Text im Code. Wer das einmal gemacht hat, will es nicht mehr anders.",
+    "Faustregel: Grid fuer das Seitengeruest und Raster, Flexbox fuer alles darin. Sie konkurrieren nicht, sie ergaenzen sich."
+   ],
+   praxis:"Baue eine Seite mit Kopf, Seitenleiste, Inhalt und Fuss ueber <code>grid-template-areas</code>, und darunter ein Kartenraster mit der auto-fill-Zeile. Zieh das Fenster schmal.",
+   check:"Was ist der Unterschied zwischen <code>auto-fill</code> und <code>auto-fit</code>?",
+   v:["css grid tutorial deutsch grid-template-areas","Kevin Powell / Programmieren lernen"],
+   q:[["MDN: Grid","https://developer.mozilla.org/de/docs/Learn_web_development/Core/CSS_layout/Grids"],["Grid Garden (Spiel)","https://cssgridgarden.com/#de"]]},
+
+  {t:"Responsive: Media und Container Queries", min:40,
+   ziel:"Deine Seite funktioniert vom Handy bis zum grossen Monitor, ohne Sonderfaelle zu sammeln.",
+   kern:[
+    "<b>Zuerst schmal bauen</b> (mobile first), dann per <code>@media (min-width:...)</code> erweitern. Andersherum sammelt man Ausnahmen, die man einzeln zuruecknehmen muss.",
+    "Umbruchpunkte richten sich nach dem <b>Inhalt</b>, nicht nach Geraetenamen. Zieh das Fenster langsam breiter und setze den Punkt dort, wo es haesslich wird. Eine Liste von iPhone-Breiten veraltet jedes Jahr.",
+    "<b>Container Queries</b> (<code>@container</code>) fragen die Breite des Behaelters statt des Fensters. Damit funktioniert dieselbe Karte in der schmalen Seitenleiste und im breiten Hauptbereich, ohne Sonderklassen. Das ist die groesste Layout-Neuerung der letzten Jahre.",
+    "Vergiss die Extreme nicht: sehr schmal (320px) und sehr breit. Ein <code>max-width</code> auf dem Inhaltsbereich verhindert Zeilen ueber die ganze Wand."
+   ],
+   praxis:"Nimm deine Kartenkomponente und setz sie einmal in eine schmale Seitenleiste und einmal in den breiten Bereich. Loese den Unterschied mit <code>@container</code> statt mit einer zweiten Klasse.",
+   check:"Warum sind Umbruchpunkte nach Geraetemodellen eine schlechte Idee?",
+   v:["css container queries tutorial deutsch","Kevin Powell"],
+   q:[["MDN: Media Queries","https://developer.mozilla.org/de/docs/Web/CSS/CSS_media_queries/Using_media_queries"],["MDN: Container Queries","https://developer.mozilla.org/de/docs/Web/CSS/CSS_containment/Container_queries"]]},
+
+  {t:"Fliessende Groessen: clamp, min, max", min:25,
+   ziel:"Du laesst Schrift und Abstaende stufenlos mitwachsen statt in Spruengen.",
+   kern:[
+    "<code>clamp(klein, wunsch, gross)</code> ist der Arbeitspferd-Aufruf: <code>font-size:clamp(1.75rem, 4vw, 3rem)</code> waechst mit dem Fenster, bleibt aber in Grenzen.",
+    "Der mittlere Wert sollte immer einen <code>rem</code>-Anteil enthalten (etwa <code>1rem + 2vw</code>), sonst ignoriert die Groesse die Zoomeinstellung des Nutzers. Das ist ein echter Barrierefreiheitsfehler, den man leicht uebersieht.",
+    "Dasselbe funktioniert fuer Abstaende und Breiten: <code>width:min(100%, 65ch)</code> heisst 'so breit wie noetig, aber nie ueber 65 Zeichen'.",
+    "Weniger Umbruchpunkte bedeuten weniger Stellen, an denen etwas kaputtgehen kann. Fliessende Werte sind deshalb nicht nur eleganter, sondern robuster."
+   ],
+   praxis:"Ersetze in deiner Uebungsseite alle Schriftgroessen der Ueberschriften durch clamp-Werte und pruefe bei 320px, 768px und 1600px Fensterbreite.",
+   check:"Warum darf im mittleren clamp-Wert nicht nur vw stehen?",
+   v:["css clamp fluid typography tutorial","Kevin Powell / Utopia"],
+   q:[["MDN: clamp()","https://developer.mozilla.org/de/docs/Web/CSS/clamp"]]},
+
+  {t:"Layoutmuster, die immer wiederkommen", min:30,
+   ziel:"Du hast eine kleine Sammlung erprobter Geruest-Loesungen im Kopf.",
+   kern:[
+    "<b>Der Stapel:</b> alles untereinander mit gleichem Abstand. Ein Flex-Behaelter mit <code>flex-direction:column</code> und <code>gap</code>, mehr nicht. Deckt gefuehlt die Haelfte aller Faelle ab.",
+    "<b>Mitte mit Rand:</b> <code>width:min(100% - 2rem, 68rem); margin-inline:auto</code>. Zentriert und haelt gleichzeitig Luft zum Bildschirmrand.",
+    "<b>Klebender Fuss:</b> Seite als Grid mit <code>grid-template-rows:auto 1fr auto</code> und <code>min-height:100dvh</code>. Der Fuss sitzt unten, auch wenn die Seite kurz ist. <code>dvh</code> statt <code>vh</code>, weil die Handy-Adressleiste sonst dazwischenfunkt.",
+    "<b>Seitenleiste, die umbricht:</b> Flexbox mit <code>flex-wrap</code> und einer Grundbreite an der Leiste. Sie rutscht von allein unter den Inhalt, wenn es eng wird."
+   ],
+   praxis:"Baue diese vier Muster in eine einzige Uebungsdatei und speicher sie als deine persoenliche Vorlage. Du wirst sie oft brauchen.",
+   check:"Warum ist <code>100dvh</code> auf dem Handy besser als <code>100vh</code>?",
+   v:["css layout patterns every layout tutorial","Kevin Powell / Every Layout"],
+   q:[["Web.dev: Zehn moderne Layouts","https://web.dev/patterns/layout/"]]}
+ ]},
+{
+ nr:5, name:"Gestaltung",
+ kurz:"Warum etwas gut aussieht, ist lernbar. Es ist kein Talent.",
+ k:[
+  {t:"Typografie als Handwerk", min:40,
+   ziel:"Du triffst Schriftentscheidungen aus Gruenden, die du benennen kannst.",
+   kern:[
+    "<b>Zwei Schriften reichen fast immer</b>: eine fuer Ueberschriften mit Charakter, eine ruhige fuer Lesetext. Eine dritte nur, wenn sie eine eigene Aufgabe hat, etwa Zahlen und Beschriftungen in einer schmalen Monospace.",
+    "Eine <b>Typoskala</b> ist eine feste Reihe von Groessen, oft im Verhaeltnis 1,25 oder 1,333. Wer nur diese Groessen benutzt, bekommt automatisch Ordnung. Zwischengroessen nach Gefuehl sind der Hauptgrund, warum Seiten unruhig wirken.",
+    "Lesbarkeit haengt an drei Zahlen: Zeilenlaenge (45 bis 75 Zeichen), Zeilenhoehe (etwa 1,5) und Schriftgroesse (mindestens 16px im Fliesstext). Diese drei zuerst, alles andere danach.",
+    "Kontrast erzeugt man mit <b>Groesse und Gewicht</b>, nicht mit Farbe allein. Eine 32px-Halbfette neben 16px-Normal ist eine klare Hierarchie, zwei mal 18px in verschiedenen Grautoenen sind Matsch."
+   ],
+   praxis:"Baue eine Typoskala mit fuenf Stufen aus einem Verhaeltnis (etwa 1,25) und setz damit einen echten Artikel. Danach setz denselben Artikel bewusst falsch mit sieben zufaelligen Groessen und vergleiche.",
+   check:"Nenne drei Zahlen, die ueber die Lesbarkeit eines Absatzes entscheiden.",
+   v:["typografie grundlagen webdesign schriftpaare","The Futur / Design Course"],
+   q:[["Butterick: Practical Typography","https://practicaltypography.com/"],["Google Fonts: Wissen","https://fonts.google.com/knowledge"]]},
+
+  {t:"Farbe und Kontrast", min:35,
+   ziel:"Du baust eine Palette, die funktioniert und nicht nur gefaellt.",
+   kern:[
+    "Eine brauchbare Palette hat wenige Rollen: <b>Grundflaeche, Flaeche, Text, gedaempfter Text, Linie, ein Akzent</b>. Der Akzent ist selten, deshalb wirkt er. Zwei gleich laute Akzente heben sich gegenseitig auf.",
+    "Neutrale Toene nie als reines Grau nehmen. Ein Grau mit einem Hauch des Akzentfarbtons wirkt gewaehlt statt uebriggeblieben.",
+    "Semantische Farben (gut, Warnung, Fehler) sind getrennt vom Akzent und duerfen nie die einzige Information sein. Ein roter Rahmen allein ist fuer Farbenblinde nichts, es braucht Text oder Symbol dazu.",
+    "Kontrast ist messbar: 4,5:1 fuer normalen Text, 3:1 fuer grosse Schrift und Bedienelemente. Das ist kein Vorschlag, sondern in Deutschland fuer viele Anbieter seit Juni 2025 Gesetz."
+   ],
+   praxis:"Bau eine Sechs-Rollen-Palette fuer ein erfundenes Projekt und pruefe jede Text-auf-Flaeche-Kombination mit einem Kontrastpruefer. Was durchfaellt, wird angepasst, nicht wegdiskutiert.",
+   check:"Warum darf Farbe nie der einzige Traeger einer Information sein?",
+   v:["farbpalette webdesign erstellen kontrast","The Futur / Design Course"],
+   q:[["WebAIM Kontrastpruefer","https://webaim.org/resources/contrastchecker/"],["Refactoring UI: Farbe","https://www.refactoringui.com/"]]},
+
+  {t:"Raster, Ausrichtung, Weissraum", min:35,
+   ziel:"Du erkennst und behebst die Unruhe, die eine Seite billig wirken laesst.",
+   kern:[
+    "<b>Ausrichtung ist die billigste Verbesserung</b>, die es gibt. Alles, was untereinander steht, teilt eine Kante. Ein einziges um drei Pixel verschobenes Element sieht man, ohne es benennen zu koennen.",
+    "<b>Naehe</b> gruppiert: was zusammengehoert, steht enger beieinander als zum Nachbarn. Eine Ueberschrift gehoert dichter an ihren Absatz als an den vorherigen. Das ist der haeufigste Abstandsfehler ueberhaupt.",
+    "Abstaende aus einer festen Reihe nehmen (4, 8, 12, 16, 24, 32, 48, 64). Freihand gewaehlte 13 oder 27 Pixel erzeugen genau die Unruhe, die man spaeter nicht findet.",
+    "Weissraum ist nicht leerer Platz, sondern Betonung. Wer etwas hervorheben will, gibt ihm mehr Luft, nicht mehr Farbe."
+   ],
+   praxis:"Nimm eine eigene Seite und mach nur zwei Dinge: alle Abstaende auf eine Achterreihe zwingen und alle linken Kanten auf eine Linie bringen. Screenshot vorher und nachher.",
+   check:"Warum steht eine Ueberschrift naeher an ihrem Text als an dem darueber?",
+   v:["gestaltungsraster weissraum design prinzipien","The Futur / Flux Academy"],
+   q:[["Refactoring UI: Layout und Abstand","https://www.refactoringui.com/"]]},
+
+  {t:"Hierarchie und Blickfuehrung", min:30,
+   ziel:"Ein Fremder erkennt in drei Sekunden, worum es auf deiner Seite geht.",
+   kern:[
+    "Auf jedem Bildschirm gibt es <b>eine</b> wichtigste Sache. Wenn alles wichtig ist, ist nichts wichtig. Das gilt besonders fuer Kunden, die 'alles nach oben' wollen.",
+    "Die Werkzeuge der Hierarchie in dieser Reihenfolge: Groesse, Gewicht, Position, Farbe, Umgebung. Farbe ist das schwaechste und wird trotzdem zuerst gegriffen.",
+    "Blicke folgen Kanten und Gesichtern. Ein Foto, dessen Person nach rechts schaut, zieht den Blick nach rechts. Das kann man nutzen oder dagegen arbeiten.",
+    "Der Blur-Test: Bildschirm zusammenkneifen oder Screenshot stark weichzeichnen. Was dann noch heraussticht, ist deine echte Hierarchie."
+   ],
+   praxis:"Mach von einer deiner Seiten einen Screenshot, zeichne ihn stark weich und pruefe, ob das Wichtigste noch heraussticht. Wenn nicht, aendere Groesse und Position, nicht die Farbe.",
+   check:"Welches Mittel der Hierarchie ist das schwaechste und wird trotzdem am haeufigsten benutzt?",
+   v:["visual hierarchy webdesign erklaert","Flux Academy / The Futur"],
+   q:[["NN/g: Visuelle Hierarchie","https://www.nngroup.com/articles/visual-hierarchy-ux-definition/"]]},
+
+  {t:"Bildsprache und Symbole", min:25,
+   ziel:"Du waehlst Bilder, die etwas beitragen, statt Platz zu fuellen.",
+   kern:[
+    "Ein Bild muss eine Aufgabe haben: erklaeren, beweisen oder Stimmung setzen. Beliebige Stockfotos von laechelnden Menschen im Buero tun nichts davon und schaden dem Vertrauen.",
+    "Symbole (Icons) immer aus <b>einem</b> Satz nehmen, gleiche Strichstaerke, gleicher Stil. Gemischte Sets sieht jeder, auch wer nicht sagen kann warum.",
+    "Ein Symbol ohne Text ist selten eindeutig. Nur ein paar sind wirklich gelernt (Lupe, Papierkorb, Haus). Alles andere braucht eine Beschriftung.",
+    "Rechte klaeren, bevor das Bild eingebaut wird. Unsplash und Pexels sind grosszuegig, KI-Bilder haben eigene Fallstricke, und ein Kunde haftet fuer das, was du einbaust."
+   ],
+   praxis:"Ersetze auf einer deiner Seiten jedes Bild entweder durch eines mit klarer Aufgabe oder loesche es ersatzlos. Notiere, welche Seite dadurch besser wurde.",
+   check:"Welche drei Aufgaben kann ein Bild auf einer Seite haben?",
+   v:["bildauswahl webdesign stockfotos vermeiden","Flux Academy"],
+   q:[["Heroicons (Symbolsatz)","https://heroicons.com/"],["Unsplash","https://unsplash.com/de"]]},
+
+  {t:"Vom Entwurf zur gebauten Seite", min:35,
+   ziel:"Du uebersetzt eine Gestaltung in CSS, ohne dass unterwegs die Ordnung verlorengeht.",
+   kern:[
+    "Zuerst die <b>Konstanten</b> herausschreiben: Farben, Schriftgroessen, Abstandsreihe, Radien. Das wird dein <code>:root</code>-Block. Erst dann faengt man mit Komponenten an.",
+    "Von aussen nach innen bauen: Seitengeruest, dann Bereiche, dann Komponenten, dann Feinheiten. Wer mit dem Knopf anfaengt, baut ihn dreimal.",
+    "Ein Entwurf hat feste Breiten, eine Seite nicht. Frag bei jedem Element: was passiert bei doppelt so langem Text, bei fehlendem Bild, bei zehn statt drei Eintraegen?",
+    "Pixelgenauigkeit ist kein Ziel. Ziel ist dieselbe <b>Wirkung</b>: gleiche Hierarchie, gleiche Ruhe, gleicher Rhythmus, auf jeder Breite."
+   ],
+   praxis:"Such dir einen fertigen Entwurf (Dribbble, Figma Community) und bau ihn nach. Notiere vorher die Konstanten, danach vergleiche mit dem Original.",
+   check:"Warum ist es ein Fehler, mit den Komponenten statt mit dem Geruest anzufangen?",
+   v:["figma design in html css umsetzen tutorial","Kevin Powell / Coder Coder"],
+   q:[["Figma Community","https://www.figma.com/community"]]}
+ ]},
+
+{
+ nr:6, name:"UX und Interaktion",
+ kurz:"Schoen genuegt nicht. Es muss auch benutzbar sein.",
+ k:[
+  {t:"Nutzer verstehen", min:30,
+   ziel:"Du beginnst ein Projekt mit Fragen statt mit Farben.",
+   kern:[
+    "Vor jedem Entwurf drei Fragen: <b>Wer</b> kommt auf diese Seite, <b>warum</b>, und <b>was</b> soll er danach getan haben. Ohne diese drei Antworten gestaltet man ins Leere.",
+    "Der Kunde ist nicht der Nutzer. Er kennt sein Geschaeft, aber er ist betriebsblind fuer seine eigene Seite. Deine Aufgabe ist, die Sicht von aussen einzubringen.",
+    "Fuenf echte Gespraeche mit Nutzern schlagen jede Vermutung. Fragen nach <b>vergangenem Verhalten</b> ('Wie haben Sie das letzte Mal einen Handwerker gesucht?'), nicht nach Wuenschen ('Wuerden Sie ...?').",
+    "Halte das Ergebnis knapp fest: eine Seite mit Zielgruppe, Hauptaufgabe und den drei wichtigsten Fragen, die die Seite beantworten muss. Diese Seite entscheidet spaeter jeden Streit."
+   ],
+   praxis:"Nimm die Seite eines Betriebs aus deiner Umgebung. Schreib auf, wer dort landet, warum, und was er tun soll. Dann pruefe, ob die Seite das unterstuetzt.",
+   check:"Warum ist 'Wuerden Sie das benutzen?' eine schlechte Nutzerfrage?",
+   v:["ux research grundlagen nutzerinterviews","NNgroup / The Futur"],
+   q:[["NN/g: Nutzerforschung","https://www.nngroup.com/topic/user-research-methods/"]]},
+
+  {t:"Informationsarchitektur und Navigation", min:35,
+   ziel:"Jeder findet auf deiner Seite, was er sucht, ohne die Struktur zu kennen.",
+   kern:[
+    "Ordne Inhalte nach der <b>Erwartung der Nutzer</b>, nicht nach dem Organigramm des Kunden. 'Abteilung 3' ist kein Menuepunkt.",
+    "Hauptnavigation: fuenf bis sieben Punkte. Mehr, und niemand liest sie. Was nicht hineinpasst, gehoert in den Fuss oder auf eine Unterseite.",
+    "Menuepunkte in der Sprache des Nutzers benennen. 'Leistungen' versteht jeder, 'Portfolio-Segmente' niemand. Substantive, kurz, konkret.",
+    "<b>Kartensortieren</b> ist die einfachste brauchbare Methode: Inhalte auf Zettel, fuenf Leute sortieren lassen. Wo alle gleich sortieren, hast du deine Struktur."
+   ],
+   praxis:"Schreib die zwanzig Inhalte einer bestehenden Seite auf Zettel und lass zwei Leute sie gruppieren und benennen. Vergleiche mit der echten Navigation.",
+   check:"Warum darf eine Hauptnavigation nicht die Firmenstruktur abbilden?",
+   v:["informationsarchitektur navigation website card sorting","NNgroup"],
+   q:[["NN/g: Informationsarchitektur","https://www.nngroup.com/topic/information-architecture/"]]},
+
+  {t:"Wireframes und Prototypen", min:35,
+   ziel:"Du klaerst Struktur und Ablauf, bevor eine einzige Farbe im Spiel ist.",
+   kern:[
+    "Ein <b>Wireframe</b> ist absichtlich grau und haesslich. Solange es so aussieht, redet man ueber Struktur. Sobald Farben da sind, redet der Kunde ueber Farben.",
+    "Papier zuerst. Zehn Skizzen in zwanzig Minuten bringen mehr als ein perfekter Entwurf in vier Stunden, weil man sie wegwerfen kann, ohne dass es wehtut.",
+    "Ein <b>Prototyp</b> verknuepft Bildschirme klickbar. Er beantwortet Fragen, die ein Standbild nicht beantworten kann: Wie viele Schritte? Wo verliert man sich?",
+    "Zeig Kunden nie Struktur und Gestaltung gleichzeitig zur Freigabe. Erst Struktur freigeben lassen, dann gestalten. Sonst diskutiert man beides doppelt."
+   ],
+   praxis:"Skizziere eine Startseite fuenfmal auf Papier in je drei Minuten. Waehle die beste aus und bau sie als graues Wireframe in Figma.",
+   check:"Warum sind Wireframes bewusst grau?",
+   v:["wireframe figma tutorial deutsch anfaenger","Figma / Design Course"],
+   q:[["Figma: Einstieg","https://help.figma.com/hc/de/articles/14563969806359"]]},
+
+  {t:"Interaktionsmuster und Zustaende", min:35,
+   ziel:"Deine Bedienelemente verhalten sich so, wie Nutzer es erwarten, in jedem Zustand.",
+   kern:[
+    "Jedes Bedienelement hat mindestens fuenf Zustaende: <b>normal, ueberfahren, Tastaturfokus, gedrueckt, deaktiviert</b>. Wer den Fokuszustand vergisst, sperrt Tastaturnutzer aus.",
+    "Jede Ansicht hat vier Zustaende: <b>leer, laedt, Fehler, voll</b>. Der leere Zustand ist der erste, den ein neuer Nutzer sieht, und wird fast immer vergessen.",
+    "Rueckmeldung innerhalb von 100 Millisekunden, sonst wirkt es kaputt und man klickt zweimal. Bei laengeren Vorgaengen einen Fortschritt zeigen, nicht nur einen Kreisel.",
+    "Erfinde keine neuen Muster fuer geloeste Probleme. Ein Auswahlfeld sieht aus wie ein Auswahlfeld. Originalitaet gehoert in die Gestaltung, nicht in die Bedienung."
+   ],
+   praxis:"Baue einen Knopf mit allen fuenf Zustaenden in CSS, danach eine Liste mit allen vier Ansichtszustaenden. Vergleiche mit einer Seite, die du oft benutzt.",
+   check:"Welcher Zustand wird am haeufigsten vergessen, und wen trifft das?",
+   v:["ui states design empty loading error tutorial","NNgroup / Design Course"],
+   q:[["NN/g: Zustaende und Rueckmeldung","https://www.nngroup.com/articles/response-times-3-important-limits/"]]},
+
+  {t:"Microcopy: Text als Bedienelement", min:25,
+   ziel:"Deine Beschriftungen sagen, was passiert, und deine Fehlermeldungen helfen.",
+   kern:[
+    "Ein Knopf beschreibt seine <b>Handlung</b>: 'Termin buchen' statt 'Absenden'. Der Nutzer liest oft nur den Knopf, nichts sonst.",
+    "Fehlermeldungen bestehen aus zwei Teilen: was schiefging und was jetzt zu tun ist. Keine Entschuldigungen, keine Codes, kein 'Ups'.",
+    "Schreib aus Sicht des Nutzers, nicht aus Sicht des Systems. Er verwaltet 'Benachrichtigungen', nicht 'Webhook-Konfigurationen'.",
+    "Kuerzer ist fast immer besser, aber nie auf Kosten der Klarheit. Erst verstaendlich, dann kurz."
+   ],
+   praxis:"Nimm drei Knoepfe und zwei Fehlermeldungen von einer beliebigen Seite und schreib sie um. Lies beide Fassungen jemandem vor.",
+   check:"Aus welchen zwei Teilen besteht eine brauchbare Fehlermeldung?",
+   v:["ux writing microcopy grundlagen deutsch","NNgroup / UX Writing Hub"],
+   q:[["NN/g: Microcopy","https://www.nngroup.com/articles/microcontent-how-to-write-headlines-page-titles-and-subject-lines/"]]},
+
+  {t:"Der Test mit fuenf Leuten", min:30,
+   ziel:"Du findest die Haelfte aller Bedienprobleme in einem Nachmittag.",
+   kern:[
+    "Fuenf Testpersonen finden etwa 85 Prozent der Probleme. Mehr Personen bringen kaum mehr Erkenntnis, das ist seit den Neunzigern belegt.",
+    "Gib eine <b>Aufgabe</b>, keine Fuehrung: 'Finde heraus, was ein Termin kostet.' Dann schweigen. Das Schweigen ist der schwerste und wichtigste Teil.",
+    "Beobachte, was jemand <b>tut</b>, nicht was er sagt. Leute sind hoeflich und loben Dinge, an denen sie gerade gescheitert sind.",
+    "Nach jedem Test die drei groessten Stolperstellen aufschreiben und beheben, bevor der naechste testet. So bringt jeder Durchgang etwas Neues."
+   ],
+   praxis:"Lass drei Leute aus deinem Umfeld eine Aufgabe auf einer deiner Seiten loesen. Sag kein Wort. Notiere jede Stelle, an der sie zoegern.",
+   check:"Warum sagt das Lob einer Testperson wenig ueber die Qualitaet aus?",
+   v:["usability test durchfuehren 5 nutzer","NNgroup"],
+   q:[["NN/g: Warum fuenf Nutzer genuegen","https://www.nngroup.com/articles/why-you-only-need-to-test-with-5-users/"]]}
+ ]},
+{
+ nr:7, name:"Barrierefreiheit",
+ kurz:"Seit Juni 2025 in Deutschland fuer viele Pflicht. Und immer richtig.",
+ k:[
+  {t:"Warum, und fuer wen", min:25,
+   ziel:"Du weisst, wen du ausschliesst, wenn du es weglaesst, und was rechtlich gilt.",
+   kern:[
+    "Betroffen sind nicht nur Blinde. Sehschwaeche, Farbenblindheit (etwa jeder zwoelfte Mann), motorische Einschraenkungen, Schwerhoerigkeit, Legasthenie, und jeder mit gebrochenem Arm oder in greller Sonne.",
+    "Das <b>Barrierefreiheitsstaerkungsgesetz</b> (BFSG) gilt in Deutschland seit dem 28. Juni 2025. Es betrifft unter anderem Onlinehandel, Bankdienste und Buchungen. Kleinstunternehmen sind teils ausgenommen, aber die Ausnahme ist enger, als viele denken.",
+    "Der technische Massstab ist die <b>WCAG</b>, Stufe AA. Vier Grundsaetze: wahrnehmbar, bedienbar, verstaendlich, robust.",
+    "Praktisch gilt: sauberes semantisches HTML erledigt etwa achtzig Prozent von allein. Barrierefreiheit ist selten Zusatzarbeit, meist ist sie nur nicht kaputtgemachte Grundarbeit."
+   ],
+   praxis:"Nimm eine Seite und benutze sie fuenf Minuten lang ohne Maus. Danach mit einem Farbenblindheits-Simulator im Browser. Notiere, was nicht geht.",
+   check:"Nenne drei Nutzergruppen ausserhalb von Blindheit, die von Barrierefreiheit profitieren.",
+   v:["barrierefreiheit website BFSG 2025 einfach erklaert","Web Barrierefrei / Deque"],
+   q:[["W3C: Einfuehrung Barrierefreiheit","https://www.w3.org/WAI/fundamentals/accessibility-intro/de"],["BFSG beim Bundesfachstelle Barrierefreiheit","https://www.bundesfachstelle-barrierefreiheit.de/"]]},
+
+  {t:"Tastatur, Fokus, Reihenfolge", min:35,
+   ziel:"Deine Seite ist vollstaendig ohne Maus bedienbar, und man sieht immer, wo man ist.",
+   kern:[
+    "Alles Bedienbare muss mit Tabulator erreichbar sein, in einer sinnvollen Reihenfolge. Diese Reihenfolge kommt aus dem HTML, nicht aus dem CSS. Wer per Grid Dinge optisch umsortiert, zerreisst sie.",
+    "<code>outline:none</code> ohne Ersatz ist der schaedlichste Einzeiler in CSS. Wenn dir der Standardring nicht gefaellt, gestalte ihn ueber <code>:focus-visible</code>, aber entferne ihn nie.",
+    "Ein <b>Sprunglink</b> ganz oben ('Zum Inhalt springen') erspart taeglichen Nutzern hunderte Tastendruecke. Fuenf Zeilen Arbeit.",
+    "Bei Dialogen muss der Fokus hinein wandern, drinnen bleiben und beim Schliessen zum ausloesenden Knopf zurueck. Das ist der haeufigste Fehler bei selbstgebauten Overlays."
+   ],
+   praxis:"Bedien eine deiner Seiten komplett mit Tab, Enter und Escape. Ergaenze einen Sprunglink und einen sichtbaren Fokusring.",
+   check:"Was ist an <code>outline:none</code> ohne Ersatz so schlimm?",
+   v:["keyboard accessibility focus visible skip link tutorial","Kevin Powell / Deque"],
+   q:[["MDN: :focus-visible","https://developer.mozilla.org/de/docs/Web/CSS/:focus-visible"]]},
+
+  {t:"Sehen, Lesen, Bewegung", min:30,
+   ziel:"Deine Seite bleibt lesbar bei schlechten Augen, Zoom und Bewegungsempfindlichkeit.",
+   kern:[
+    "Kontrast mindestens 4,5:1 fuer Text, 3:1 fuer grosse Schrift und fuer Bedienelemente und Symbole. Mit einem Pruefer messen, nicht schaetzen.",
+    "Die Seite muss bei 200 Prozent Zoom noch benutzbar sein, ohne dass Text abgeschnitten wird oder waagerecht gescrollt werden muss. Feste Hoehen an Textbehaeltern sind hier der Hauptfeind.",
+    "<code>@media (prefers-reduced-motion:reduce)</code> respektieren. Fuer manche Menschen loesen grosse Bewegungen echte Uebelkeit aus. Zwei Zeilen, die Animationen ausschalten, reichen.",
+    "Nie Text als Bild. Er laesst sich nicht vergroessern, nicht vorlesen, nicht uebersetzen und nicht durchsuchen."
+   ],
+   praxis:"Setz deine Seite auf 200 Prozent Zoom und pruefe jede Ecke. Ergaenze den Block fuer reduzierte Bewegung.",
+   check:"Welcher Kontrastwert gilt fuer normalen Fliesstext?",
+   v:["wcag kontrast zoom prefers-reduced-motion erklaert","Kevin Powell / Deque"],
+   q:[["WebAIM Kontrastpruefer","https://webaim.org/resources/contrastchecker/"]]},
+
+  {t:"ARIA sparsam einsetzen", min:30,
+   ziel:"Du benutzt ARIA nur dort, wo HTML wirklich nicht ausreicht.",
+   kern:[
+    "Die erste Regel von ARIA lautet: <b>benutze kein ARIA</b>, wenn ein normales HTML-Element dasselbe kann. Ein <code>&lt;button&gt;</code> ist immer besser als ein <code>div role=\"button\"</code>.",
+    "Falsches ARIA ist schlimmer als gar keins. Es uebersteuert, was der Browser von allein richtig meldet, und macht funktionierende Dinge kaputt.",
+    "Sinnvolle Faelle: <code>aria-label</code> fuer Knoepfe, die nur ein Symbol zeigen, <code>aria-expanded</code> an Auf- und Zuklappern, <code>aria-live</code> fuer Meldungen, die ohne Seitenwechsel erscheinen.",
+    "Selbstgebaute Bedienelemente (Registerkarten, Menues, Dialoge) haben festgelegte Tastaturmuster. Die stehen im ARIA Authoring Practices Guide, mit fertigen Beispielen. Nicht raten, nachschlagen."
+   ],
+   praxis:"Baue ein Auf- und Zuklapp-Element mit <code>aria-expanded</code> und pruefe es mit einer Vorlesefunktion (Windows: Sprachausgabe mit Strg+Windows+Eingabe).",
+   check:"Warum ist falsches ARIA schlechter als gar keins?",
+   v:["aria basics erklaert wann benutzen","Deque / Kevin Powell"],
+   q:[["ARIA Authoring Practices","https://www.w3.org/WAI/ARIA/apg/"]]},
+
+  {t:"Pruefen: Werkzeuge und Handproben", min:30,
+   ziel:"Du hast eine feste Pruefliste, die du vor jeder Uebergabe abarbeitest.",
+   kern:[
+    "Automatische Pruefer (Lighthouse, axe, WAVE) finden etwa dreissig bis vierzig Prozent der Probleme. Sie sind der Anfang, nicht das Ergebnis.",
+    "Die vier Handproben, die den Rest finden: nur Tastatur bedienen, auf 200 Prozent zoomen, Bilder abschalten, eine Vorlesefunktion einschalten.",
+    "Ueberschriftengliederung pruefen: springt sie von h1 auf h3? Vorleseprogramme navigieren darueber wie ueber ein Inhaltsverzeichnis.",
+    "Ergebnis dokumentieren. Ein kurzer Bericht mit Befund, Schwere und Vorschlag ist bei Kunden ein eigenes verkaufbares Produkt."
+   ],
+   praxis:"Lass axe DevTools ueber eine deiner Seiten laufen, behebe alle Befunde und mach danach die vier Handproben. Schreib das Ergebnis als kurzen Bericht.",
+   check:"Warum reicht ein gruener Lighthouse-Wert nicht als Nachweis?",
+   v:["axe devtools wave lighthouse accessibility test","Deque / Chrome for Developers"],
+   q:[["WAVE Pruefwerkzeug","https://wave.webaim.org/"],["axe DevTools","https://www.deque.com/axe/devtools/"]]}
+ ]},
+
+{
+ nr:8, name:"Werkzeuge und Design-Systeme",
+ kurz:"Figma und die Ordnung dahinter. Ab hier arbeitest du wie im Studio.",
+ k:[
+  {t:"Figma: Grundlagen", min:35,
+   ziel:"Du bewegst dich sicher in Figma und baust einen sauberen ersten Entwurf.",
+   kern:[
+    "Aufbau: Datei, Seiten, <b>Zeichenflaechen</b> (Frames). Frames sind keine Rechtecke, sie koennen Layoutregeln haben und ineinander verschachtelt werden. Das ist der zentrale Unterschied.",
+    "Die wichtigsten Kuerzel: <code>F</code> Frame, <code>R</code> Rechteck, <code>T</code> Text, <code>Shift+A</code> Auto Layout, <code>Alt</code> beim Ziehen zeigt Abstaende. Diese fuenf sparen die meiste Zeit.",
+    "Benenne Ebenen von Anfang an. Eine Datei mit 'Rectangle 47' ist nach zwei Wochen fuer dich selbst unbrauchbar, geschweige denn fuer Kollegen.",
+    "Arbeite in echten Massen: 1440 Breite fuer Desktop, 390 fuer Handy, und dieselbe Abstandsreihe wie spaeter im CSS. Wer im Entwurf 13 Pixel benutzt, baut sich Aerger ein."
+   ],
+   praxis:"Bau eine Startseite als Frame in 1440 Breite mit benannten Ebenen und einer Abstandsreihe aus Vielfachen von 8.",
+   check:"Was ist der Unterschied zwischen einem Frame und einer Gruppe?",
+   v:["figma tutorial deutsch anfaenger grundlagen","Figma / Design Course"],
+   q:[["Figma Lernbereich","https://help.figma.com/hc/de"]]},
+
+  {t:"Auto Layout, Komponenten, Varianten", min:40,
+   ziel:"Du baust wiederverwendbare Bausteine statt Bilder von Bausteinen.",
+   kern:[
+    "<b>Auto Layout</b> ist Flexbox in Figma: Richtung, Abstand, Innenabstand, Ausrichtung. Wer es benutzt, dessen Entwuerfe halten laengeren Text aus. Wer es nicht benutzt, schiebt bei jeder Aenderung von Hand.",
+    "Eine <b>Komponente</b> ist die Vorlage, eine <b>Instanz</b> ihre Verwendung. Aenderungen an der Vorlage wirken ueberall. Das ist derselbe Gedanke wie eine Funktion im Code.",
+    "<b>Varianten</b> buendeln Zustaende einer Komponente (normal, ueberfahren, deaktiviert, gross, klein) in einer Auswahl statt in zwoelf Einzelkomponenten.",
+    "Baue Komponenten erst, wenn ein Element zum dritten Mal vorkommt. Zu frueh abstrahieren kostet mehr Zeit, als es spart."
+   ],
+   praxis:"Bau einen Knopf als Komponente mit vier Varianten und setz ihn zehnmal ein. Aendere danach an der Vorlage den Radius und schau zu.",
+   check:"Ab wann lohnt es sich, ein Element zur Komponente zu machen?",
+   v:["figma auto layout components variants tutorial deutsch","Figma / Design Course"],
+   q:[["Figma: Komponenten","https://help.figma.com/hc/de/articles/360038662654"]]},
+
+  {t:"Design Tokens", min:30,
+   ziel:"Gestaltung und Umsetzung teilen dieselben Werte unter denselben Namen.",
+   kern:[
+    "Ein <b>Token</b> ist ein benannter Wert: <code>farbe.akzent</code>, <code>abstand.3</code>, <code>radius.klein</code>. In Figma sind das Variablen, im Code CSS-Eigenschaften. Gleicher Name auf beiden Seiten.",
+    "Zwei Ebenen bewaehren sich: <b>Grundtokens</b> (die Farbe petrol-600) und <b>Rollentokens</b> (die Akzentfarbe der Oberflaeche). Komponenten benutzen nur Rollentokens, nie Grundtokens.",
+    "Genau dadurch wird ein dunkler Modus zur Kleinigkeit: nur die Zuordnung der Rollen aendert sich, kein einziger Baustein.",
+    "Tokens sind erst dann etwas wert, wenn beide Seiten dieselben Namen benutzen. Eine Liste, die nur im Entwurf lebt, ist Dekoration."
+   ],
+   praxis:"Lege in Figma Variablen fuer Farben und Abstaende an, benenne sie nach Rollen und uebertrage exakt dieselben Namen in deinen <code>:root</code>-Block.",
+   check:"Warum sollte eine Komponente nie direkt auf einen Grundtoken zugreifen?",
+   v:["design tokens erklaert figma variables css","Figma / Design Systems"],
+   q:[["Figma: Variablen","https://help.figma.com/hc/de/articles/15339657135383"]]},
+
+  {t:"Ein kleines Design-System bauen", min:40,
+   ziel:"Du hast eine eigene Bausteinsammlung, die jedes neue Projekt beschleunigt.",
+   kern:[
+    "Ein System besteht aus vier Teilen: <b>Tokens</b>, <b>Bausteine</b> (Knopf, Feld, Karte), <b>Muster</b> (Formular, Kopfzeile) und <b>Regeln</b> (wann was benutzt wird). Der vierte Teil wird immer vergessen und ist der wichtigste.",
+    "Fang klein an: Farben, Schrift, Abstaende, Knopf, Feld, Karte. Das deckt die meisten Seiten ab. Ein System, das nie fertig wird, hilft niemandem.",
+    "Zu jedem Baustein gehoert die Angabe, <b>wann er nicht</b> zu benutzen ist. Das verhindert die Wildwuchs-Sammlung aus vierzehn Knopfarten.",
+    "Ein System ist ein Produkt mit Nutzern, naemlich dir in sechs Monaten. Wenn du deine eigene Regel nicht mehr verstehst, war sie schlecht aufgeschrieben."
+   ],
+   praxis:"Bau eine Datei mit Tokens, drei Bausteinen und je zwei Saetzen, wann man sie benutzt und wann nicht. Baue damit dein naechstes Projekt.",
+   check:"Welcher der vier Systemteile wird am haeufigsten vergessen?",
+   v:["design system aufbauen kleines team tutorial","Figma / Design Systems"],
+   q:[["Design Systems Handbuch","https://www.designbetter.co/design-systems-handbook"]]},
+
+  {t:"Uebergabe an die Umsetzung", min:25,
+   ziel:"Ein Entwickler kann deinen Entwurf ohne Rueckfragen bauen.",
+   kern:[
+    "Ein Entwurf allein reicht nie. Dazu gehoeren: Verhalten auf schmalen Bildschirmen, alle Zustaende, leere Faelle, Fehlerfaelle und die echten Texte.",
+    "Liefere Werte, keine Screenshots: Tokens, Schriftgroessen, Abstaende. Ein Entwickler, der Abstaende aus einem Bild abmisst, rat genauso wie du.",
+    "Bilder in den richtigen Formaten mitgeben (SVG fuer Symbole und Logos), nicht als PNG-Ausschnitt.",
+    "Wenn du selbst baust, gilt dasselbe gegen dich. Der Entwurf ist die Absprache mit deinem eigenen zukuenftigen Ich."
+   ],
+   praxis:"Bereite einen deiner Entwuerfe vollstaendig zur Uebergabe auf und lass jemanden ohne deine Erklaerung danach bauen. Was er fragt, fehlte.",
+   check:"Was gehoert ausser den Bildschirmen selbst noch in eine Uebergabe?",
+   v:["figma dev mode handoff tutorial","Figma"],
+   q:[["Figma Dev Mode","https://help.figma.com/hc/de/articles/15023124644247"]]}
+ ]},
+
+{
+ nr:9, name:"JavaScript fuer Gestalter",
+ kurz:"So viel, wie du brauchst. Und die Einsicht, wann du es nicht brauchst.",
+ k:[
+  {t:"Grundlagen der Sprache", min:40,
+   ziel:"Du liest fremden einfachen JavaScript-Code und aenderst ihn gezielt.",
+   kern:[
+    "<code>const</code> als Standard, <code>let</code> nur wenn sich der Wert wirklich aendert, <code>var</code> nie. Das ist keine Stilfrage, es verhindert eine ganze Fehlerklasse.",
+    "Datentypen, die du brauchst: Zeichenkette, Zahl, Wahrheitswert, Feld (Array), Objekt. Objekte sind Sammlungen aus Name und Wert und die haeufigste Form von Daten im Web.",
+    "Funktionen nehmen etwas entgegen und geben etwas zurueck. Kleine Funktionen mit klarem Namen schlagen jede lange Funktion mit Kommentaren.",
+    "Die drei Feldmethoden, die achtzig Prozent der Arbeit machen: <code>map</code> (umformen), <code>filter</code> (aussieben), <code>find</code> (eins suchen)."
+   ],
+   praxis:"Bau ein Feld mit zehn Objekten (Name, Preis, Kategorie) und erzeuge daraus per map und filter eine Liste im Browser.",
+   check:"Warum ist <code>const</code> die bessere Voreinstellung als <code>let</code>?",
+   v:["javascript grundlagen deutsch anfaenger 2025","Programmieren lernen / Web Dev Simplified"],
+   q:[["MDN: JavaScript Grundlagen","https://developer.mozilla.org/de/docs/Learn_web_development/Core/Scripting"]]},
+
+  {t:"DOM und Ereignisse", min:40,
+   ziel:"Du reagierst auf Klicks und aenderst die Seite gezielt.",
+   kern:[
+    "<code>document.querySelector</code> holt ein Element ueber denselben Selektor wie in CSS. Mehr Auswahlmethoden braucht man selten.",
+    "<code>element.addEventListener('click', fn)</code> ist der Standardweg. Klick-Attribute direkt im HTML vermischen Struktur und Verhalten und lassen sich schlecht wieder loesen.",
+    "Aendere bevorzugt <b>Klassen</b>, nicht Einzelstile: <code>el.classList.toggle('offen')</code>. Das Aussehen bleibt in CSS, wo es hingehoert, und JavaScript schaltet nur um.",
+    "Bei vielen gleichartigen Elementen einen Zuhoerer am gemeinsamen Elternelement anbringen und im Ereignis <code>event.target</code> auswerten. Spart hunderte Zuhoerer."
+   ],
+   praxis:"Baue ein Aufklapp-Menue und eine Bilderliste, in der ein Klick auf ein kleines Bild das grosse austauscht. Nur ueber Klassen, kein direktes Style-Setzen.",
+   check:"Warum aendert man lieber Klassen als einzelne Stileigenschaften?",
+   v:["javascript dom manipulation events tutorial deutsch","Web Dev Simplified / Programmieren lernen"],
+   q:[["MDN: DOM-Skripting","https://developer.mozilla.org/de/docs/Learn_web_development/Core/Scripting/DOM_scripting"]]},
+
+  {t:"Formulare, Pruefung, Zustaende", min:35,
+   ziel:"Du ergaenzt die Browserpruefung um das, was sie nicht kann.",
+   kern:[
+    "Erst die eingebaute Pruefung nutzen (<code>required</code>, <code>type</code>, <code>pattern</code>), dann mit JavaScript ergaenzen. Nie ersetzen, sonst verliert man alles ohne Skript.",
+    "Pruefe beim <b>Verlassen</b> eines Feldes, nicht bei jedem Tastendruck. Wer beim dritten Buchstaben schon 'ungueltig' liest, wird nur genervt.",
+    "Fehlermeldungen mit <code>aria-live=\"polite\"</code> auszeichnen, damit Vorleseprogramme sie mitbekommen, und den Fokus auf das erste fehlerhafte Feld setzen.",
+    "Nach dem Absenden den Knopf sperren und den Zustand zeigen ('Wird gesendet ...'). Sonst klicken Leute dreimal, und du bekommst drei Anfragen."
+   ],
+   praxis:"Erweitere dein Kontaktformular um eine eigene Pruefung mit sichtbaren, vorlesbaren Fehlermeldungen und einem gesperrten Absendeknopf waehrend des Sendens.",
+   check:"Warum sollte man die eingebaute Browserpruefung nicht komplett abschalten?",
+   v:["javascript formular validierung barrierefrei tutorial","Web Dev Simplified / Kevin Powell"],
+   q:[["MDN: Formularpruefung","https://developer.mozilla.org/de/docs/Learn_web_development/Extensions/Forms/Form_validation"]]},
+
+  {t:"Animation: CSS zuerst", min:30,
+   ziel:"Du animierst fluessig und weisst, welche Eigenschaften teuer sind.",
+   kern:[
+    "<code>transform</code> und <code>opacity</code> sind billig, weil der Browser sie ohne Neuberechnung des Layouts zeichnen kann. <code>width</code>, <code>height</code>, <code>top</code> und <code>margin</code> zu animieren, ruckelt.",
+    "Dauer: 150 bis 300 Millisekunden fuer kleine Uebergaenge. Alles ueber 400 fuehlt sich zaeh an, egal wie schoen es aussieht.",
+    "Animation soll etwas <b>erklaeren</b>: woher kam das Element, was hat sich geaendert. Bewegung ohne Aussage ist Laerm und veraltet schnell.",
+    "<code>prefers-reduced-motion</code> respektieren, immer. Und: nicht alles gleichzeitig animieren. Ein orchestrierter Moment wirkt staerker als zehn Effekte."
+   ],
+   praxis:"Baue einen Uebergang fuer ein Aufklapp-Menue, einmal mit height (ruckelt) und einmal mit transform oder grid-template-rows. Vergleiche im Leistungsreiter.",
+   check:"Welche zwei CSS-Eigenschaften kann man am guenstigsten animieren?",
+   v:["css animation performance transform opacity tutorial","Kevin Powell / Chrome for Developers"],
+   q:[["MDN: Uebergaenge","https://developer.mozilla.org/de/docs/Web/CSS/CSS_transitions/Using_CSS_transitions"]]},
+
+  {t:"Wann ein Framework, wann nicht", min:25,
+   ziel:"Du triffst diese Entscheidung nach dem Projekt, nicht nach der Mode.",
+   kern:[
+    "Frameworks wie React oder Vue loesen ein bestimmtes Problem: viele Zustaende, die viele Stellen der Oberflaeche gleichzeitig aendern. Eine Firmenseite mit fuenf Unterseiten hat dieses Problem nicht.",
+    "Kosten eines Frameworks: mehr zu ladender Code, ein Bauprozess, Abhaengigkeiten, die veralten, und ein Kunde, der ohne dich nichts mehr aendern kann.",
+    "Zwischenstufen kennen: <b>Astro</b> oder <b>Eleventy</b> bauen statische Seiten aus Bausteinen, ohne dem Besucher ein Framework mitzuschicken. Fuer die meisten Gestalterprojekte ist das der beste Punkt.",
+    "Faustregel: Wenn du den Nutzen nicht in einem Satz erklaeren kannst, brauchst du es in diesem Projekt nicht."
+   ],
+   praxis:"Nimm drei Projektideen und entscheide begruendet fuer jede: reines HTML/CSS, Statikgenerator oder Framework. Schreib je einen Satz dazu.",
+   check:"Welches Problem loest ein Framework, das eine Firmenseite meist gar nicht hat?",
+   v:["astro vs react wann framework statische seite","Fireship / Astro"],
+   q:[["Astro Dokumentation","https://docs.astro.build/de/getting-started/"]]}
+ ]},
+{
+ nr:10, name:"Tempo, Auffindbarkeit, Qualitaet",
+ kurz:"Eine schoene Seite, die vier Sekunden laedt, ist keine schoene Seite.",
+ k:[
+  {t:"Ladezeit verstehen", min:35,
+   ziel:"Du weisst, was gemessen wird und welche Stellschrauben es gibt.",
+   kern:[
+    "Drei Messwerte zaehlen (Core Web Vitals): <b>LCP</b> wann das groesste Element sichtbar ist (Ziel unter 2,5 Sekunden), <b>INP</b> wie schnell die Seite auf Eingaben reagiert (unter 200 ms), <b>CLS</b> wie stark das Layout springt (unter 0,1).",
+    "Der haeufigste LCP-Bremser ist ein grosses, unkomprimiertes Bild ganz oben. Der haeufigste CLS-Verursacher sind Bilder ohne Groessenangabe und nachgeladene Schriften.",
+    "Messen auf dem Handy, nicht auf deinem Rechner. Dein Rechner mit Glasfaser sagt nichts ueber die Wirklichkeit im Zug.",
+    "Die Reihenfolge der Wirkung: weniger Zeug laden, das Noetige frueher laden, alles andere spaeter. In dieser Reihenfolge, nicht umgekehrt."
+   ],
+   praxis:"Lass PageSpeed Insights ueber eine echte Seite laufen und ordne jeden Befund einem der drei Werte zu.",
+   check:"Was misst CLS, und welche zwei Ursachen sind am haeufigsten?",
+   v:["core web vitals erklaert lcp inp cls deutsch","Chrome for Developers / web.dev"],
+   q:[["web.dev: Core Web Vitals","https://web.dev/articles/vitals"],["PageSpeed Insights","https://pagespeed.web.dev/"]]},
+
+  {t:"Bilder und Schriften optimieren", min:35,
+   ziel:"Du halbierst die Ladezeit typischer Seiten mit wenigen Handgriffen.",
+   kern:[
+    "Bilder sind meist siebzig bis achtzig Prozent des Gewichts einer Seite. Hier liegt der groesste Hebel, und er kostet keine Gestaltung.",
+    "Richtige Groesse liefern, nicht ein 4000-Pixel-Foto per CSS auf 400 schrumpfen. Mit <code>srcset</code> und <code>sizes</code> laesst du den Browser die passende Fassung waehlen.",
+    "Schriften: nur die Schnitte laden, die du wirklich benutzt. Vier Schnitte einer Familie sind schnell ein halbes Megabyte. Variable Fonts koennen guenstiger sein, wenn man mehrere Gewichte braucht.",
+    "<code>font-display:swap</code> und <code>preload</code> fuer die eine Schrift, die oben sichtbar ist. Alles andere darf warten."
+   ],
+   praxis:"Nimm eine bestehende Seite, komprimiere alle Bilder, setz srcset ein und reduziere die Schriftschnitte. Miss vorher und nachher.",
+   check:"Warum reicht es nicht, ein grosses Bild per CSS kleiner darzustellen?",
+   v:["bilder optimieren srcset webp schriften laden","web.dev / Kevin Powell"],
+   q:[["MDN: Responsive Bilder","https://developer.mozilla.org/de/docs/Web/HTML/Guides/Responsive_images"],["Squoosh (Kompression)","https://squoosh.app/"]]},
+
+  {t:"SEO fuer Gestalter", min:35,
+   ziel:"Du baust Seiten, die gefunden werden, ohne Tricks zu benutzen.",
+   kern:[
+    "Die Grundlage ist Handwerk, das du schon kennst: sinnvolle Ueberschriftengliederung, sprechende Linktexte, alt-Texte, schnelle Ladezeit, Bedienbarkeit auf dem Handy.",
+    "Pro Seite ein <code>&lt;title&gt;</code> (etwa 50 bis 60 Zeichen) und eine <code>meta description</code> (etwa 150). Beides ist Werbetext im Suchergebnis, nicht Technik.",
+    "Strukturierte Daten (schema.org) erklaeren Suchmaschinen, was ein Inhalt <b>ist</b>: ein Betrieb, ein Rezept, eine Veranstaltung. Fuer lokale Betriebe ist LocalBusiness der wichtigste Typ.",
+    "Was heute noch schadet: Text als Bild, Inhalte, die erst per JavaScript erscheinen, kaputte interne Links, und dieselbe Seite unter mehreren Adressen ohne <code>canonical</code>."
+   ],
+   praxis:"Schreib fuer drei Seiten je Titel und Beschreibung, ergaenze strukturierte Daten fuer einen Betrieb und pruefe sie mit dem Rich Results Test.",
+   check:"Welche SEO-Grundlagen ergeben sich automatisch aus gutem HTML?",
+   v:["seo grundlagen webdesign title description schema","Google Search Central"],
+   q:[["Google: SEO Starter Guide","https://developers.google.com/search/docs/fundamentals/seo-starter-guide?hl=de"],["Schema.org","https://schema.org/"]]},
+
+  {t:"Messen und Pruefen vor der Uebergabe", min:25,
+   ziel:"Du hast eine Abnahmeliste, die du vor jedem Livegang abhakst.",
+   kern:[
+    "Lighthouse gibt vier Werte: Leistung, Barrierefreiheit, Best Practices, SEO. Nutze sie als Suchhilfe fuer Probleme, nicht als Note.",
+    "Ein Wert von 100 auf deinem Rechner ist wertlos. Die Felddaten echter Nutzer (in der Search Console) zaehlen.",
+    "Feste Liste vor jeder Uebergabe: alle Links pruefen, 404-Seite vorhanden, Favicon, Vorschaubild fuer soziale Netze, Impressum, Datenschutz, Formular getestet, auf einem echten Handy angesehen.",
+    "Diese Liste einmal schreiben und immer wieder benutzen. Sie verhindert genau die peinlichen Fehler, die man am Tag der Uebergabe macht."
+   ],
+   praxis:"Schreib deine eigene Abnahmeliste mit mindestens zwoelf Punkten und arbeite sie an einem echten Projekt ab.",
+   check:"Warum ist ein Lighthouse-Wert von 100 kein Beweis fuer eine schnelle Seite?",
+   v:["lighthouse audit erklaert website checkliste launch","Chrome for Developers"],
+   q:[["web.dev: Lighthouse","https://developer.chrome.com/docs/lighthouse/overview"]]},
+
+  {t:"Ueber Geraete und Browser testen", min:25,
+   ziel:"Du findest die Fehler, die nur auf fremden Geraeten auftreten.",
+   kern:[
+    "Die Geraeteansicht in den Entwicklerwerkzeugen ist eine Simulation, kein Ersatz. Sie kennt weder echte Finger noch echte Bildschirme noch echte Netze.",
+    "Mindestens einmal auf einem echten Handy testen, moeglichst auf einem alten. Deine Seite laeuft nicht auf deinem Rechner, sondern auf dem der anderen.",
+    "Safari ist der Browser, in dem Dinge anders sind. Wer keinen Mac hat, findet in der iOS-Geraeteansicht nur die Haelfte. Testgeraete leihen oder Dienste nutzen.",
+    "<code>caniuse.com</code> vor dem Einsatz neuer Eigenschaften. Und <code>@supports</code>, wenn ein Rueckfall noetig ist."
+   ],
+   praxis:"Ruf eine deiner Seiten auf einem fremden Handy auf, das nicht deins ist, und notiere alles, was anders aussieht als erwartet.",
+   check:"Warum ersetzt die Geraeteansicht im Browser kein echtes Geraet?",
+   v:["cross browser testing website mobile safari","Kevin Powell / web.dev"],
+   q:[["Can I use","https://caniuse.com/"]]}
+ ]},
+
+{
+ nr:11, name:"Arbeitsweise und Veroeffentlichen",
+ kurz:"Damit Arbeit nicht verlorengeht und Aenderungen keine Angst machen.",
+ k:[
+  {t:"Git: die wichtigsten zehn Befehle", min:40,
+   ziel:"Du sicherst deine Arbeit in Schritten und kommst zu jedem alten Stand zurueck.",
+   kern:[
+    "Der Ablauf: <code>git add</code> (auswaehlen), <code>git commit -m \"...\"</code> (festhalten), <code>git push</code> (hochladen). Dazu <code>git status</code> vor jedem Schritt, weil es zeigt, was gerade wirklich los ist.",
+    "Eine gute Commit-Nachricht sagt <b>warum</b>, nicht was. 'Kontrast der Knoepfe auf 4,5:1 erhoeht' ist brauchbar, 'Aenderungen' nicht.",
+    "Zweige (<code>git switch -c name</code>) sind Arbeitskopien fuer eine Sache. Geht sie schief, wirft man den Zweig weg statt die Arbeit von drei Tagen.",
+    "<code>.gitignore</code> von Anfang an: keine <code>node_modules</code>, keine Zugangsdaten, keine Systemdateien. Was einmal drin ist, geht schwer wieder raus."
+   ],
+   praxis:"Leg ein Projekt unter Git, mach fuenf Commits mit verstaendlichen Nachrichten, bau absichtlich etwas kaputt und geh zum vorherigen Stand zurueck.",
+   check:"Warum beschreibt eine gute Commit-Nachricht das Warum statt das Was?",
+   v:["git grundlagen deutsch tutorial anfaenger","Programmieren lernen / Fireship"],
+   q:[["Git Handbuch","https://git-scm.com/book/de/v2"]]},
+
+  {t:"Projektstruktur und Benennung", min:20,
+   ziel:"Du findest dich in einem eigenen Projekt auch nach einem halben Jahr zurecht.",
+   kern:[
+    "Eine flache, offensichtliche Struktur schlaegt eine kluge. <code>css/</code>, <code>js/</code>, <code>bilder/</code>, <code>seiten/</code> versteht jeder sofort.",
+    "Klassennamen nach <b>Bedeutung</b>, nicht nach Aussehen: <code>.warnhinweis</code> statt <code>.roter-kasten</code>. Sonst ist der rote Kasten irgendwann blau.",
+    "Eine Namenskonvention waehlen und durchhalten. BEM (<code>.karte__titel--gross</code>) ist eine erprobte, wenn auch sperrige Wahl. Welche ist weniger wichtig als die Einheitlichkeit.",
+    "In jedes Projekt eine <code>README</code>: was ist das, wie startet man es, wo liegt was. Zehn Zeilen, die dir spaeter eine Stunde sparen."
+   ],
+   praxis:"Raeum ein altes Projekt auf: Struktur vereinheitlichen, Klassen nach Bedeutung umbenennen, README schreiben.",
+   check:"Was ist an der Klasse <code>.roter-kasten</code> problematisch?",
+   v:["bem css naming convention erklaert","Kevin Powell"],
+   q:[["BEM Kurzuebersicht","https://getbem.com/introduction/"]]},
+
+  {t:"Bauwerkzeuge, wenn noetig", min:25,
+   ziel:"Du weisst, wann ein Bauprozess hilft und wann er nur Ballast ist.",
+   kern:[
+    "Eine Seite aus HTML, CSS und etwas JavaScript braucht keinen Bauprozess. Man kann sie hochladen und sie laeuft. Das ist ein Vorteil, kein Rueckstand.",
+    "Ein Bauwerkzeug (Vite) lohnt ab dem Punkt, wo man Dateien zusammenfassen, importieren oder Bausteine wiederverwenden will.",
+    "<b>Sass</b> ist heute weniger noetig als frueher: Verschachtelung und Variablen kann CSS mittlerweile selbst. Nimm es, wenn du es brauchst, nicht aus Gewohnheit.",
+    "Jede Abhaengigkeit ist ein Versprechen an die Zukunft. Ein Projekt mit dreissig Paketen laesst sich in zwei Jahren oft nicht mehr bauen, eine reine HTML-Seite immer."
+   ],
+   praxis:"Bau dasselbe kleine Projekt zweimal: einmal ohne Werkzeuge, einmal mit Vite. Miss, wie lange beides dauert und was es dir bringt.",
+   check:"Ab welchem Punkt lohnt sich ein Bauprozess wirklich?",
+   v:["vite tutorial deutsch wann build tool noetig","Fireship / Vite"],
+   q:[["Vite Dokumentation","https://vite.dev/guide/"]]},
+
+  {t:"Veroeffentlichen und Betrieb", min:30,
+   ziel:"Du bringst ein Projekt sicher online und weisst, was danach zu tun ist.",
+   kern:[
+    "Statisches Hosting mit Anbindung an Git ist der einfachste Weg: pushen, fertig, es baut und veroeffentlicht sich selbst. Netlify, Cloudflare Pages, GitHub Pages.",
+    "Domain verbinden heisst DNS-Eintraege setzen. Aenderungen brauchen bis zu 24 Stunden, das dem Kunden <b>vorher</b> sagen, sonst ruft er nach zehn Minuten an.",
+    "HTTPS erzwingen, <code>www</code> und Nicht-<code>www</code> auf eine Fassung umleiten, sonst zaehlen Suchmaschinen zwei Seiten.",
+    "Nach dem Livegang: alle Links pruefen, Formular einmal echt absenden, auf dem Handy anschauen, Sicherung anlegen. Und dem Kunden aufschreiben, wie er selbst etwas aendern kann."
+   ],
+   praxis:"Veroeffentliche ein Projekt ueber Git-Anbindung, verbinde eine echte oder eine Testdomain und arbeite deine Abnahmeliste ab.",
+   check:"Warum sollten www und Nicht-www auf eine Fassung umgeleitet werden?",
+   v:["website live schalten domain verbinden netlify","Netlify / Cloudflare"],
+   q:[["Cloudflare Pages","https://developers.cloudflare.com/pages/"]]},
+
+  {t:"CMS und Baukaesten einordnen", min:25,
+   ziel:"Du empfiehlst dem Kunden das Werkzeug, das zu ihm passt, nicht das zu dir.",
+   kern:[
+    "Die ehrliche Frage lautet: <b>Wer pflegt die Seite in zwei Jahren?</b> Danach entscheidet sich alles Weitere.",
+    "Baukaesten (Wix, Squarespace) sind fuer den Kunden bedienbar, aber begrenzt und nicht mitnehmbar. WordPress ist verbreitet und pflegebeduerftig. Statik mit einem Redaktionsdienst ist schnell und sicher, aber der Kunde braucht eine kurze Einweisung.",
+    "Reine Handarbeit ist richtig, wenn sich die Inhalte selten aendern. Fuer eine Handwerkerseite mit fuenf Unterseiten ist ein WordPress mit vierzig Erweiterungen ueberdimensioniert und ein Sicherheitsrisiko.",
+    "Was du auch waehlst: rechne die laufenden Kosten und den Pflegeaufwand mit ein und sag sie dem Kunden vor Auftrag."
+   ],
+   praxis:"Schreib fuer drei erfundene Kunden je eine Empfehlung mit Begruendung, geschaetzten laufenden Kosten und Pflegeaufwand.",
+   check:"Welche Frage entscheidet ueber die Wahl des Systems?",
+   v:["wordpress vs webflow vs statische seite vergleich","Flux Academy / Fireship"],
+   q:[["WordPress Dokumentation","https://wordpress.org/documentation/"]]}
+ ]},
+
+{
+ nr:12, name:"Beruf: Kunden, Portfolio, Recht",
+ kurz:"Der Teil, der aus Koennen ein Einkommen macht.",
+ k:[
+  {t:"Briefing und Angebot", min:35,
+   ziel:"Du klaerst vor der Zusage, was gebaut wird, und schreibst ein Angebot, das haelt.",
+   kern:[
+    "Feste Fragen im Erstgespraech: Ziel der Seite, Zielgruppe, Umfang in Seiten, wer liefert Texte und Bilder, Termin, Budgetrahmen. Wer nach Budget zu fragen scheut, arbeitet spaeter umsonst.",
+    "<b>Texte und Bilder sind der haeufigste Verzoegerungsgrund.</b> Halte schriftlich fest, wer sie bis wann liefert, und was passiert, wenn nicht.",
+    "Ein Angebot beschreibt Leistung, Umfang, <b>Anzahl der Korrekturschleifen</b>, Zahlungsplan und was ausdruecklich nicht enthalten ist. Der letzte Punkt spart die meisten Streitigkeiten.",
+    "Vorschuss ist normal: ein Drittel bei Auftrag, ein Drittel bei Entwurfsfreigabe, ein Drittel bei Livegang. Wer ohne Vorschuss anfaengt, finanziert seinen Kunden."
+   ],
+   praxis:"Schreib eine Briefing-Vorlage mit zehn Fragen und ein Angebotsmuster mit den fuenf Punkten. Beides einmal, dann hast du es fuer immer.",
+   check:"Welcher Punkt in einem Angebot verhindert die meisten Streitigkeiten?",
+   v:["webdesign angebot erstellen briefing kunden freelancer","The Futur / Flux Academy"],
+   q:[["Bundesverband Freie Berufe","https://www.freie-berufe.de/"]]},
+
+  {t:"Preise und Vertraege", min:35,
+   ziel:"Du nennst einen Preis, ohne dich zu entschuldigen, und weisst, worauf er beruht.",
+   kern:[
+    "<b>Nicht nach Stunden abrechnen, wenn du schneller wirst.</b> Sonst bestrafst du dein eigenes Koennen. Festpreis pro klar umrissenem Umfang ist meist fairer fuer beide Seiten.",
+    "Stundensatz trotzdem kennen, als innere Rechengroesse: Jahreskosten plus Gewinn geteilt durch tatsaechlich abrechenbare Stunden. Das sind selten mehr als tausend im Jahr, nicht zweitausend.",
+    "Nutzungsrechte gehoeren in den Vertrag. Was darf der Kunde mit dem Entwurf tun, was passiert bei Abbruch, wem gehoert der Quelltext.",
+    "In Deutschland zusaetzlich klaeren: Kleinunternehmerregelung oder Umsatzsteuer, Kuenstlersozialkasse (fuer Gestalter oft relevant), und Rechnungspflichtangaben."
+   ],
+   praxis:"Rechne deinen noetigen Stundensatz aus echten Zahlen aus. Schreib danach fuer ein Beispielprojekt einen Festpreis mit Begruendung.",
+   check:"Warum bestraft Stundenabrechnung wachsendes Koennen?",
+   v:["freelancer stundensatz berechnen webdesign preise","The Futur / Selbststaendig"],
+   q:[["IHK: Existenzgruendung","https://www.ihk.de/"]]},
+
+  {t:"Ein Portfolio, das Auftraege bringt", min:35,
+   ziel:"Deine eigene Seite ueberzeugt jemanden, der dich nicht kennt, in zwei Minuten.",
+   kern:[
+    "Drei gute Arbeiten schlagen zehn mittelmaessige. Was du zeigst, bestimmt, was man dir anbietet. Zeig nur, was du wieder machen willst.",
+    "Zeig <b>Fallgeschichten</b>, keine Bildergalerien: Ausgangslage, Aufgabe, dein Weg, Ergebnis, moeglichst mit Zahl ('Ladezeit von 4,1 auf 1,3 Sekunden'). Kunden kaufen Denkweise, nicht Screenshots.",
+    "Ohne Auftraege: erfinde welche. Gestalte die Seite eines echten Betriebs aus deiner Stadt neu und dokumentiere deine Entscheidungen. Das zaehlt, solange du klar sagst, dass es eine Uebung war.",
+    "Deine eigene Seite ist deine wichtigste Arbeitsprobe: schnell, barrierefrei, fehlerfrei geschrieben, mit sichtbarem Kontaktweg. Wer hier schlampt, verliert vor dem ersten Gespraech."
+   ],
+   praxis:"Schreib eine Fallgeschichte zu einem deiner Uebungsprojekte nach dem Muster Ausgangslage, Aufgabe, Weg, Ergebnis, mit mindestens einer Zahl.",
+   check:"Warum sind Fallgeschichten wirksamer als Bildergalerien?",
+   v:["webdesign portfolio case study aufbauen","The Futur / Flux Academy"],
+   q:[["NN/g: Fallstudien schreiben","https://www.nngroup.com/articles/ux-case-studies/"]]},
+
+  {t:"Praesentieren und Feedback annehmen", min:30,
+   ziel:"Du fuehrst durch deinen Entwurf, statt ihn zur Abstimmung zu stellen.",
+   kern:[
+    "Nie kommentarlos einen Entwurf schicken. Immer zuerst die Aufgabe wiederholen, dann zeigen, wie der Entwurf sie loest. Ohne Rahmen urteilt jeder nach Geschmack.",
+    "Frag nicht 'Gefaellt es Ihnen?', sondern 'Erfuellt das unser Ziel, mehr Anfragen zu bekommen?'. Die erste Frage laedt zu Geschmacksdebatten ein, die zweite zu Entscheidungen.",
+    "Hinter fast jedem seltsamen Kundenwunsch steckt ein echtes Problem. 'Machen Sie das Logo groesser' heisst oft 'Ich erkenne nicht, dass es um uns geht'. Frag nach dem Warum, bevor du aenderst.",
+    "Zwei Korrekturschleifen sind vertraglich vereinbart, das ist normal. Alles darueber ist ein neuer Auftrag, freundlich, aber klar."
+   ],
+   praxis:"Praesentiere einen Entwurf jemandem in fuenf Minuten: Aufgabe, Loesung, drei Entscheidungen mit Begruendung. Lass dir Fragen stellen.",
+   check:"Warum ist 'Gefaellt es Ihnen?' die falsche Frage?",
+   v:["design praesentieren kunden feedback umgang","The Futur"],
+   q:[["The Futur: Kundengespraeche","https://thefutur.com/"]]},
+
+  {t:"Recht in Deutschland", min:35,
+   ziel:"Du lieferst keine Seite aus, die dem Kunden eine Abmahnung einbringt.",
+   kern:[
+    "<b>Impressum</b> nach Paragraf 5 DDG (frueher TMG): auf jeder Seite in maximal zwei Klicks erreichbar, mit Name, Anschrift, Kontakt, gegebenenfalls Register und Umsatzsteuer-ID.",
+    "<b>Datenschutzerklaerung</b> nach DSGVO, die tatsaechlich beschreibt, was passiert. Google Fonts vom Google-Server nachzuladen war schon Gegenstand von Abmahnwellen. Schriften selbst hosten loest das.",
+    "<b>Einwilligung</b> vor dem Setzen nicht notwendiger Cookies und vor dem Laden externer Dienste (Karten, Videos, Analyse). Vorher darf nichts an Dritte gehen. Ein Banner, der schon vorher laedt, ist wertlos.",
+    "<b>Bildrechte</b>: Lizenz und Nachweis dokumentieren. Und seit 2025 die Barrierefreiheitspflicht aus Lernfeld 7. Du bist kein Anwalt, aber du musst wissen, wann du auf einen verweist."
+   ],
+   praxis:"Pruefe drei echte Seiten kleiner Betriebe auf Impressum, Datenschutz, extern geladene Schriften und Einwilligung. Notiere die Befunde sachlich.",
+   check:"Warum ist ein Cookie-Banner wertlos, wenn die Karte schon vorher laedt?",
+   v:["impressum datenschutz website pflicht dsgvo google fonts","eRecht24 / Datenschutz"],
+   q:[["Datenschutzkonferenz","https://www.datenschutzkonferenz-online.de/"],["Gesetze im Internet: DDG","https://www.gesetze-im-internet.de/ddg/"]]},
+
+  {t:"Dranbleiben und weiterlernen", min:20,
+   ziel:"Du hast eine Routine, die dich ohne Kurs weiterbringt.",
+   kern:[
+    "Baue jede Woche eine Kleinigkeit fertig. Ein fertiges kleines Ding lehrt mehr als drei angefangene grosse.",
+    "Lies fremden Code. Die Entwicklerwerkzeuge auf jeder Seite, die dich beeindruckt, sind der beste kostenlose Unterricht, den es gibt.",
+    "Wenige gute Quellen schlagen viele: MDN zum Nachschlagen, web.dev fuer Praxis, Kevin Powell fuer CSS, Nielsen Norman Group fuer UX. Mehr Abos bringen nur mehr Rauschen.",
+    "Fuehre eine Datei mit geloesten Problemen. In sechs Monaten hast du dein eigenes Nachschlagewerk, und es ist besser als jedes fremde, weil es deine Faelle enthaelt."
+   ],
+   praxis:"Lege diese Datei heute an und trag das erste Problem ein, das du in diesem Kurs geloest hast.",
+   check:"Was lernst du aus einer fertigen Kleinigkeit, das drei angefangene Projekte nicht lehren?",
+   v:["webdesign lernen routine 2025 ressourcen","Kevin Powell / The Futur"],
+   q:[["MDN Web Docs","https://developer.mozilla.org/de/"],["web.dev","https://web.dev/"]]}
+ ]}
+];
+
+/* Praxisprojekte. Jedes wird frei, wenn die genannten Lernfelder fertig sind.
+   Ohne gebaute Projekte bleibt der Rest Theorie. */
+const PROJEKTE = [
+ {stufe:"Projekt 1", name:"Eine Seite ueber dich", nach:2, dauer:"2 bis 3 Abende",
+  ziel:"Eine einzelne HTML-Seite ohne Gestaltungsanspruch, aber vollstaendig und korrekt.",
+  punkte:["Vollstaendiges Dokumentgeruest mit lang, charset, viewport, Titel","Saubere Ueberschriftengliederung, kein div","Drei Bilder mit brauchbaren alt-Texten","Ein Kontaktformular mit Labels, nur mit Tastatur bedienbar"]},
+ {stufe:"Projekt 2", name:"Startseite eines Betriebs aus deiner Stadt", nach:4, dauer:"3 bis 5 Abende",
+  ziel:"Ein echtes Layout, das vom Handy bis zum grossen Monitor haelt.",
+  punkte:["Geruest mit Grid, Innenleben mit Flexbox","Kartenraster ohne einzige Media Query (auto-fill)","Alle Schriftgroessen fliessend per clamp","Bei 320px und 1600px geprueft"]},
+ {stufe:"Projekt 3", name:"Dieselbe Seite, jetzt gestaltet", nach:5, dauer:"3 bis 4 Abende",
+  ziel:"Aus 'funktioniert' wird 'sieht ueberlegt aus'.",
+  punkte:["Typoskala mit fuenf Stufen, zwei Schriften","Palette aus sechs Rollen, jede Kombination kontrastgeprueft","Abstandsreihe konsequent durchgehalten","Blur-Test bestanden: das Wichtigste sticht heraus"]},
+ {stufe:"Projekt 4", name:"Umbau nach echtem Nutzertest", nach:7, dauer:"4 bis 6 Abende",
+  ziel:"Belegte Verbesserung statt Geschmacksaenderung. Das wird deine erste Fallgeschichte.",
+  punkte:["Drei Personen loesen eine Aufgabe, du schweigst und notierst","Struktur aus Kartensortieren, nicht aus dem Bauch","Vollstaendig mit Tastatur bedienbar, Sprunglink, sichtbarer Fokus","Vorher-Nachher mit mindestens einer Zahl"]},
+ {stufe:"Projekt 5", name:"Mehrseitige Seite mit Bausteinsystem", nach:9, dauer:"1 bis 2 Wochen",
+  ziel:"Vier Unterseiten, die sichtbar zusammengehoeren, mit interaktiven Teilen.",
+  punkte:["Tokens in Figma und CSS unter denselben Namen","Wiederverwendete Bausteine statt kopiertem Code","Aufklapp-Menue und Formularpruefung in JavaScript","Alle Zustaende gebaut: leer, laedt, Fehler, voll"]},
+ {stufe:"Projekt 6", name:"Kundenprojekt von Anfang bis Livegang", nach:12, dauer:"2 bis 4 Wochen",
+  ziel:"Der komplette Ablauf. Danach kannst du das verkaufen.",
+  punkte:["Briefing, Angebot mit Korrekturschleifen, Vorschuss","Entwurf praesentiert und begruendet, nicht nur geschickt","Lighthouse und die vier Handproben zur Barrierefreiheit","Impressum, Datenschutz, Schriften selbst gehostet, Abnahmeliste abgehakt","Fallgeschichte fuers Portfolio geschrieben"]}
+];
+</script>
+
+<div class="huelle">
+  <aside class="schiene" id="schiene">
+    <div class="marke">
+      <span class="wort">Werkbank Webdesign</span>
+      <span class="zusatz">12 Lernfelder &middot; ein Kapitel am Tag</span>
+    </div>
+    <div class="suchfeld">
+      <input type="search" id="suche" placeholder="suchen: grid, kontrast, angebot ..." aria-label="Lehrplan durchsuchen">
+    </div>
+    <nav class="schienenliste" id="schienenliste" aria-label="Lehrplan"></nav>
+  </aside>
+
+  <div class="buehne">
+    <div class="tagesband">
+      <button class="knopf schienenknopf" id="schiene-auf" aria-label="Lernfelder anzeigen">Lernfelder</button>
+      <div class="block">
+        <span class="etikett">Heute</span>
+        <span class="wert" id="heute-wert">0/30</span>
+        <span class="etikett">Min</span>
+      </div>
+      <div class="balken" id="heute-balken"><i style="width:0%"></i></div>
+      <div class="block">
+        <span class="etikett">Serie</span>
+        <span class="wert" id="serie-wert">0</span>
+        <span class="etikett">Tage</span>
+      </div>
+      <div class="block">
+        <span class="etikett">Gesamt</span>
+        <span class="wert" id="gesamt-wert">0%</span>
+      </div>
+      <div class="bandrest">
+        <label class="etikett" for="ziel-wahl">Pensum</label>
+        <select id="ziel-wahl" aria-label="Tagespensum in Minuten">
+          <option value="15">15 Min</option>
+          <option value="30">30 Min</option>
+          <option value="45">45 Min</option>
+          <option value="60">60 Min</option>
+          <option value="90">90 Min</option>
+        </select>
+        <button class="knopf" id="nav-start">Uebersicht</button>
+        <button class="knopf" id="nav-projekte">Projekte</button>
+        <button class="knopf" id="theme-knopf" aria-label="Helligkeit umschalten">&#9681;</button>
+      </div>
+    </div>
+    <div class="blatt" id="blatt"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- Kapitel flach machen, damit Reihenfolge und Suche einfach sind ---------- */
+const ALLE = [];
+LEHRPLAN.forEach(function(lf){
+  lf.k.forEach(function(kap, i){
+    ALLE.push(Object.assign({}, kap, {
+      id:"lf" + lf.nr + "-k" + (i+1),
+      lfNr:lf.nr, lfName:lf.name, kNr:i+1, pos:ALLE.length
+    }));
+  });
+});
+const GESAMTMINUTEN = ALLE.reduce(function(s,k){return s + k.min;}, 0);
+
+/* ---------- Zustand ---------- */
+const LEER = {erledigt:{}, notizen:{}, tage:{}, zielMin:30, letzte:null, zeit:0};
+let Z = JSON.parse(JSON.stringify(LEER));
+let dbHandle = null, sampleHandle = null, downloadsHandle = null;
+let sichern = null;
+
+function heuteDatum(){
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function tagVor(datum, n){
+  const t = new Date(datum + "T12:00:00");
+  t.setDate(t.getDate() - n);
+  return t.getFullYear() + "-" + String(t.getMonth()+1).padStart(2,"0") + "-" + String(t.getDate()).padStart(2,"0");
+}
+
+function ausSpeicher(){
+  try{
+    const roh = localStorage.getItem("werkbank-webdesign");
+    if(roh) return JSON.parse(roh);
+  }catch(e){ /* Privatmodus oder gesperrte Site-Daten: dann eben ohne */ }
+  return null;
+}
+function inSpeicher(){
+  try{ localStorage.setItem("werkbank-webdesign", JSON.stringify(Z)); }catch(e){}
+}
+
+/* Gespeichert wird gebuendelt: bei jedem Tastendruck in eine Notiz zu
+   schreiben waere unnoetiger Netzverkehr. */
+function merken(){
+  Z.zeit = Date.now();
+  inSpeicher();
+  clearTimeout(sichern);
+  sichern = setTimeout(function(){
+    if(dbHandle){ dbHandle.doc("fortschritt/haupt").set(Z).catch(function(){}); }
+  }, 900);
+}
+
+/* ---------- Rechnen ---------- */
+function istFertig(id){ return !!Z.erledigt[id]; }
+function feldFertig(nr){
+  const k = ALLE.filter(function(x){return x.lfNr === nr;});
+  return k.every(function(x){return istFertig(x.id);});
+}
+function feldAnteil(nr){
+  const k = ALLE.filter(function(x){return x.lfNr === nr;});
+  const f = k.filter(function(x){return istFertig(x.id);}).length;
+  return {fertig:f, alle:k.length, anteil: k.length ? f/k.length : 0};
+}
+function gesamtAnteil(){
+  const f = ALLE.filter(function(x){return istFertig(x.id);}).length;
+  return f / ALLE.length;
+}
+function minutenHeute(){ return Z.tage[heuteDatum()] || 0; }
+function serie(){
+  let n = 0, tag = heuteDatum();
+  if(!(Z.tage[tag] > 0)) tag = tagVor(tag, 1);
+  while(Z.tage[tag] > 0){ n++; tag = tagVor(tag, 1); }
+  return n;
+}
+function naechstesOffenes(){
+  return ALLE.find(function(k){return !istFertig(k.id);}) || null;
+}
+function tagesPensum(){
+  const ziel = Z.zielMin, aus = [];
+  let summe = 0;
+  for(const k of ALLE){
+    if(istFertig(k.id)) continue;
+    aus.push(k);
+    summe += k.min;
+    if(summe >= ziel) break;
+  }
+  return aus;
+}
+
+/* ---------- Werkzeuge ---------- */
+function esc(s){
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function videoLink(v){
+  return "https://www.youtube.com/results?search_query=" + encodeURIComponent(v[0]);
+}
+function kapVon(id){ return ALLE.find(function(k){return k.id === id;}) || null; }
+</script>
+
+<script>
+"use strict";
+
+let ansicht = {art:"start", id:null};
+let suchbegriff = "";
+
+/* ---------- Schiene ---------- */
+function zeichneSchiene(){
+  const behaelter = document.getElementById("schienenliste");
+  const s = suchbegriff.trim().toLowerCase();
+  let html = "";
+
+  LEHRPLAN.forEach(function(lf){
+    const kapitel = ALLE.filter(function(k){return k.lfNr === lf.nr;});
+    const treffer = s ? kapitel.filter(function(k){
+      return (k.t + " " + lf.name + " " + k.ziel + " " + k.kern.join(" ")).toLowerCase().indexOf(s) > -1;
+    }) : kapitel;
+    if(s && treffer.length === 0) return;
+
+    const a = feldAnteil(lf.nr);
+    const offen = s ? true : (ansicht.art === "kapitel" && kapVon(ansicht.id) && kapVon(ansicht.id).lfNr === lf.nr);
+
+    html += '<div class="feld" data-fertig="' + (feldFertig(lf.nr) ? "ja" : "nein") + '" aria-expanded="' + (offen ? "true" : "false") + '">';
+    html += '<button class="feldkopf" data-feld="' + lf.nr + '">';
+    html += '<span class="nummer">' + String(lf.nr).padStart(2,"0") + '</span>';
+    html += '<span class="feldname">' + esc(lf.name) + '</span>';
+    html += '<span class="feldzahl">' + a.fertig + '/' + a.alle + '</span>';
+    html += '</button><ul class="kapitel">';
+    treffer.forEach(function(k){
+      const fertig = istFertig(k.id);
+      html += '<li><button class="kaplink" data-kap="' + k.id + '" data-erledigt="' + (fertig ? "ja" : "nein") + '"'
+            + (ansicht.id === k.id ? ' aria-current="true"' : '') + '>'
+            + '<span class="haken">' + (fertig ? "&#10003;" : "&#183;") + '</span>'
+            + '<span class="titel">' + esc(k.t) + '</span>'
+            + '<span class="dauer">' + k.min + "'" + '</span>'
+            + '</button></li>';
+    });
+    html += "</ul></div>";
+  });
+
+  if(!html) html = '<p class="leer" style="padding:16px">Nichts gefunden.</p>';
+  behaelter.innerHTML = html;
+}
+
+/* ---------- Kopfzeile ---------- */
+function zeichneBand(){
+  const min = minutenHeute(), ziel = Z.zielMin;
+  document.getElementById("heute-wert").textContent = min + "/" + ziel;
+  const b = document.getElementById("heute-balken");
+  b.querySelector("i").style.width = Math.min(100, Math.round(min/ziel*100)) + "%";
+  b.classList.toggle("voll", min >= ziel);
+  document.getElementById("serie-wert").textContent = serie();
+  document.getElementById("gesamt-wert").textContent = Math.round(gesamtAnteil()*100) + "%";
+  document.getElementById("ziel-wahl").value = String(ziel);
+}
+
+/* ---------- Startansicht ---------- */
+function zeichneStart(){
+  const pensum = tagesPensum();
+  const fertig = ALLE.filter(function(k){return istFertig(k.id);}).length;
+  const restMin = ALLE.filter(function(k){return !istFertig(k.id);}).reduce(function(s,k){return s+k.min;},0);
+  const tageRest = Math.max(1, Math.ceil(restMin / Z.zielMin));
+
+  let html = '<div class="aufschlag">';
+  html += '<p class="pfad">Lehrplan &middot; ' + LEHRPLAN.length + ' Lernfelder &middot; ' + ALLE.length + ' Kapitel</p>';
+  html += '<h1>' + (fertig === 0 ? "Fangen wir an." : (fertig === ALLE.length ? "Durch. Alle Lernfelder." : "Weiter, wo du aufgehoert hast.")) + '</h1>';
+  html += '<p class="lead">Vom ersten HTML-Tag bis zum abgerechneten Kundenprojekt. Jeden Tag ein Stueck, in einer Reihenfolge, in der nichts vorausgesetzt wird, was noch nicht dran war.</p>';
+  html += "</div>";
+
+  html += '<div class="zahlenreihe">';
+  html += '<div class="zahl"><b>' + fertig + " / " + ALLE.length + '</b><span class="etikett">Kapitel erledigt</span></div>';
+  html += '<div class="zahl"><b>' + Math.round(restMin/60) + ' h</b><span class="etikett">Lernzeit uebrig</span></div>';
+  html += '<div class="zahl"><b>' + tageRest + '</b><span class="etikett">Tage bei ' + Z.zielMin + ' Min</span></div>';
+  html += '<div class="zahl"><b>' + serie() + '</b><span class="etikett">Tage in Folge</span></div>';
+  html += "</div>";
+
+  html += '<section class="abschnitt"><h2>Dein Pensum heute</h2>';
+  if(pensum.length === 0){
+    html += '<p class="leer">Alles durch. Zeit fuer Projekt 6, oder such dir ein Kapitel zum Auffrischen.</p>';
+  }else{
+    html += '<ul class="heuteliste">';
+    pensum.forEach(function(k){
+      html += '<li data-kap="' + k.id + '">'
+           + '<span class="hnr mono">LF ' + String(k.lfNr).padStart(2,"0") + ' &middot; K ' + k.kNr + '</span>'
+           + '<span><span class="htitel">' + esc(k.t) + '</span><span class="hfeld">' + esc(k.lfName) + '</span></span>'
+           + '<span class="hnr mono">' + k.min + " Min" + '</span></li>';
+    });
+    html += "</ul>";
+    html += '<p class="hinweis" style="margin-top:14px">Zusammen ' + pensum.reduce(function(s,k){return s+k.min;},0)
+         + ' Minuten. Weniger ist auch in Ordnung: die Serie zaehlt schon ab einem erledigten Kapitel.</p>';
+  }
+  html += "</section>";
+
+  html += '<section class="abschnitt"><h2>Die zwoelf Lernfelder</h2><div class="felderraster">';
+  LEHRPLAN.forEach(function(lf){
+    const a = feldAnteil(lf.nr);
+    html += '<button class="feldkachel" data-feld-start="' + lf.nr + '">'
+         + '<span class="knr">LERNFELD ' + String(lf.nr).padStart(2,"0") + ' &middot; ' + a.fertig + "/" + a.alle + '</span>'
+         + '<h3>' + esc(lf.name) + '</h3>'
+         + '<p style="margin:0; font-size:14px; color:var(--gedaempft)">' + esc(lf.kurz) + '</p>'
+         + '<span class="mini"><i style="width:' + Math.round(a.anteil*100) + '%"></i></span>'
+         + '</button>';
+  });
+  html += "</div></section>";
+
+  html += '<div class="trenner"></div>';
+  html += '<section class="abschnitt"><h2>So ist der Kurs gebaut</h2><ul class="kernliste">'
+       + '<li><span><b>Reihenfolge zaehlt.</b> Die Lernfelder bauen aufeinander auf. Du kannst springen, aber Lernfeld 5 setzt voraus, dass du 3 und 4 gebaut hast, nicht nur gelesen.</span></li>'
+       + '<li><span><b>Jedes Kapitel hat eine Aufgabe.</b> Gelesen ist nicht gelernt. Das Kapitel gilt erst als erledigt, wenn die Praxisaufgabe gemacht ist.</span></li>'
+       + '<li><span><b>Sechs Projekte statt Zertifikat.</b> Nach bestimmten Lernfeldern wird ein Projekt frei. Am Ende hast du ein Portfolio, nicht eine Urkunde.</span></li>'
+       + '<li><span><b>Die Videos sind Suchlinks, keine festen Videos.</b> Einzelne Videos verschwinden, eine Suche mit dem richtigen Begriff nicht. Der empfohlene Kanal steht dabei.</span></li>'
+       + "</ul></section>";
+
+  document.getElementById("blatt").innerHTML = html;
+}
+
+/* ---------- Projekte ---------- */
+function zeichneProjekte(){
+  let html = '<p class="pfad">Praxis</p><h1 style="margin-bottom:10px">Sechs Projekte</h1>';
+  html += '<p class="lead" style="margin-bottom:28px">Wissen, das nie gebaut wurde, verschwindet. Jedes Projekt wird frei, sobald die noetigen Lernfelder durch sind, und jedes ist am Ende portfoliotauglich.</p>';
+  html += '<div class="projekte">';
+  PROJEKTE.forEach(function(p){
+    const frei = LEHRPLAN.filter(function(lf){return lf.nr <= p.nach;}).every(function(lf){return feldFertig(lf.nr);});
+    html += '<article class="projekt" data-frei="' + (frei ? "ja" : "nein") + '">';
+    html += '<span class="stufe">' + esc(p.stufe) + ' &middot; ' + esc(p.dauer) + '</span>';
+    html += "<h3>" + esc(p.name) + "</h3>";
+    html += '<p style="margin:0; max-width:62ch">' + esc(p.ziel) + "</p>";
+    html += "<ul>" + p.punkte.map(function(x){return "<li>" + esc(x) + "</li>";}).join("") + "</ul>";
+    html += frei
+      ? '<span class="marke-frei">&#10003; frei ab jetzt</span>'
+      : '<span class="marke-zu">frei nach Lernfeld ' + p.nach + "</span>";
+    html += "</article>";
+  });
+  html += "</div>";
+  document.getElementById("blatt").innerHTML = html;
+}
+
+/* ---------- Kapitelansicht ---------- */
+function zeichneKapitel(id){
+  const k = kapVon(id);
+  if(!k){ zeichneStart(); return; }
+  const fertig = istFertig(k.id);
+  const naechst = ALLE[k.pos + 1] || null;
+  const vorher = ALLE[k.pos - 1] || null;
+
+  let html = '<p class="pfad">Lernfeld ' + String(k.lfNr).padStart(2,"0") + " &middot; " + esc(k.lfName)
+           + " &middot; Kapitel " + k.kNr + " &middot; " + k.min + " Min</p>";
+  html += "<h1>" + esc(k.t) + "</h1>";
+  html += '<p class="ziel">' + esc(k.ziel) + "</p>";
+
+  html += '<section class="abschnitt"><h2>Das musst du wissen</h2><ul class="kernliste">'
+       + k.kern.map(function(x){return "<li><span>" + x + "</span></li>";}).join("")
+       + "</ul></section>";
+
+  html += '<section class="abschnitt"><h2>Aufgabe</h2><div class="praxis"><h3>Selber machen</h3><p>'
+       + k.praxis + "</p></div></section>";
+
+  html += '<section class="abschnitt"><h2>Selbstpruefung</h2><div class="selbstcheck"><p>'
+       + k.check + "</p></div>"
+       + '<p class="hinweis" style="margin-top:10px">Antworte laut, in eigenen Worten. Wenn du stockst, ist das die Stelle zum Nachlesen.</p></section>';
+
+  html += '<section class="abschnitt"><h2>Video und Quellen</h2><div class="quellen">';
+  html += '<a class="quelle film" href="' + videoLink(k.v) + '" target="_blank" rel="noopener">&#9654; Videosuche <small>' + esc(k.v[1]) + "</small></a>";
+  k.q.forEach(function(qu){
+    html += '<a class="quelle" href="' + esc(qu[1]) + '" target="_blank" rel="noopener">' + esc(qu[0]) + "</a>";
+  });
+  html += "</div></section>";
+
+  html += '<section class="abschnitt"><h2>Deine Notiz</h2>'
+       + '<textarea class="notiz" id="notiz" placeholder="Was hast du gebaut? Was hat nicht funktioniert? Wo willst du nochmal ran?">'
+       + esc(Z.notizen[k.id] || "") + "</textarea>"
+       + '<span class="notizstand" id="notizstand">wird beim Tippen gespeichert</span></section>';
+
+  html += '<section class="abschnitt" id="lehrer-bereich" hidden><h2>Nachfragen</h2>'
+       + '<div class="lehrer"><form id="lehrer-form">'
+       + '<input id="lehrer-frage" placeholder="Frag zu diesem Kapitel, zum Beispiel: warum ruckelt margin?" aria-label="Frage zu diesem Kapitel">'
+       + '<button class="knopf stark" type="submit">Fragen</button></form>'
+       + '<div class="antwort" id="lehrer-antwort" hidden></div></div></section>';
+
+  html += '<div class="fussleiste">';
+  html += '<button class="knopf ' + (fertig ? "" : "stark") + '" id="fertig-knopf">'
+       + (fertig ? "&#10003; erledigt, nochmal oeffnen" : "Kapitel erledigt") + "</button>";
+  if(vorher) html += '<button class="knopf" data-kap="' + vorher.id + '">&#8592; zurueck</button>';
+  if(naechst) html += '<button class="knopf" data-kap="' + naechst.id + '">weiter: ' + esc(naechst.t) + " &#8594;</button>";
+  html += '<span class="weiter">' + (k.pos+1) + " von " + ALLE.length + "</span></div>";
+
+  document.getElementById("blatt").innerHTML = html;
+
+  const feld = document.getElementById("notiz");
+  let tippZeit = null;
+  feld.addEventListener("input", function(){
+    Z.notizen[k.id] = feld.value;
+    clearTimeout(tippZeit);
+    tippZeit = setTimeout(function(){
+      merken();
+      document.getElementById("notizstand").textContent = "gespeichert " + new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+    }, 500);
+  });
+
+  document.getElementById("fertig-knopf").addEventListener("click", function(){
+    umschalten(k.id);
+  });
+
+  if(sampleHandle) lehrerAnbinden(k);
+}
+
+function umschalten(id){
+  const k = kapVon(id);
+  const war = istFertig(id);
+  if(war){
+    delete Z.erledigt[id];
+  }else{
+    Z.erledigt[id] = true;
+    const t = heuteDatum();
+    Z.tage[t] = (Z.tage[t] || 0) + k.min;
+  }
+  Z.letzte = id;
+  merken();
+  zeichnen();
+  if(!war){
+    const n = ALLE[k.pos + 1];
+    if(n) setTimeout(function(){ oeffne(n.id); }, 150);
+  }
+}
+
+function oeffne(id){
+  ansicht = {art:"kapitel", id:id};
+  Z.letzte = id; merken();
+  zeichnen();
+  window.scrollTo({top:0, behavior:"smooth"});
+  document.getElementById("schiene").setAttribute("data-offen","nein");
+}
+
+function zeichnen(){
+  zeichneBand();
+  zeichneSchiene();
+  if(ansicht.art === "start") zeichneStart();
+  else if(ansicht.art === "projekte") zeichneProjekte();
+  else zeichneKapitel(ansicht.id);
+}
+</script>
+
+<script>
+"use strict";
+
+/* ---------- Bedienung ---------- */
+document.addEventListener("click", function(ev){
+  const kap = ev.target.closest("[data-kap]");
+  if(kap){ oeffne(kap.getAttribute("data-kap")); return; }
+
+  const kopf = ev.target.closest("[data-feld]");
+  if(kopf){
+    const feld = kopf.parentElement;
+    feld.setAttribute("aria-expanded", feld.getAttribute("aria-expanded") === "true" ? "false" : "true");
+    return;
+  }
+  const kachel = ev.target.closest("[data-feld-start]");
+  if(kachel){
+    const nr = Number(kachel.getAttribute("data-feld-start"));
+    const erstes = ALLE.find(function(k){return k.lfNr === nr && !istFertig(k.id);})
+                || ALLE.find(function(k){return k.lfNr === nr;});
+    if(erstes) oeffne(erstes.id);
+    return;
+  }
+});
+
+document.getElementById("nav-start").addEventListener("click", function(){
+  ansicht = {art:"start", id:null}; zeichnen(); window.scrollTo({top:0});
+});
+document.getElementById("nav-projekte").addEventListener("click", function(){
+  ansicht = {art:"projekte", id:null}; zeichnen(); window.scrollTo({top:0});
+});
+document.getElementById("ziel-wahl").addEventListener("change", function(e){
+  Z.zielMin = Number(e.target.value); merken(); zeichnen();
+});
+document.getElementById("suche").addEventListener("input", function(e){
+  suchbegriff = e.target.value; zeichneSchiene();
+});
+document.getElementById("schiene-auf").addEventListener("click", function(){
+  const s = document.getElementById("schiene");
+  s.setAttribute("data-offen", s.getAttribute("data-offen") === "ja" ? "nein" : "ja");
+});
+
+/* Helligkeit: die Wahl gilt nur auf diesem Geraet, deshalb bewusst nicht
+   im Fortschritt gespeichert. */
+const themeKnopf = document.getElementById("theme-knopf");
+function themeSetzen(wert){
+  if(wert) document.documentElement.setAttribute("data-theme", wert);
+  else document.documentElement.removeAttribute("data-theme");
+  try{ wert ? localStorage.setItem("werkbank-theme", wert) : localStorage.removeItem("werkbank-theme"); }catch(e){}
+}
+try{
+  const gespeichert = localStorage.getItem("werkbank-theme");
+  if(gespeichert) themeSetzen(gespeichert);
+}catch(e){}
+themeKnopf.addEventListener("click", function(){
+  const jetzt = document.documentElement.getAttribute("data-theme");
+  const dunkelSystem = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  if(!jetzt) themeSetzen(dunkelSystem ? "light" : "dark");
+  else themeSetzen(jetzt === "dark" ? "light" : "dark");
+});
+
+/* ---------- Nachfragen beim Lehrer (nur wenn verfuegbar) ---------- */
+function lehrerAnbinden(k){
+  const bereich = document.getElementById("lehrer-bereich");
+  if(!bereich) return;
+  bereich.hidden = false;
+  const form = document.getElementById("lehrer-form");
+  const feld = document.getElementById("lehrer-frage");
+  const aus = document.getElementById("lehrer-antwort");
+
+  form.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    const frage = feld.value.trim();
+    if(!frage) return;
+    aus.hidden = false;
+    aus.textContent = "Denkt nach ...";
+    const knopf = form.querySelector("button");
+    knopf.disabled = true;
+
+    const zusammenhang =
+      "Du bist ein erfahrener Webdesign-Lehrer und antwortest auf Deutsch, knapp und ohne Floskeln.\n" +
+      "Der Lernende ist gerade in diesem Kapitel:\n" +
+      "Lernfeld " + k.lfNr + ": " + k.lfName + "\n" +
+      "Kapitel: " + k.t + "\n" +
+      "Lernziel: " + k.ziel + "\n" +
+      "Inhalte: " + k.kern.join(" ").replace(/<[^>]+>/g, "") + "\n\n" +
+      "Antworte in hoechstens acht Saetzen. Wenn ein Beispiel hilft, gib ein kurzes Codebeispiel. " +
+      "Wenn die Frage ueber das Kapitel hinausgeht, sag in einem Satz, in welchem Lernfeld das drankommt.\n\n" +
+      "Frage: " + frage;
+
+    sampleHandle(zusammenhang, {
+      modelTier:"default",
+      onText:function(d){ aus.textContent = d.text; }
+    }).then(function(a){
+      aus.textContent = a.text;
+    }).catch(function(f){
+      aus.textContent = f && f.code === "rate_limited"
+        ? "Gerade zu viele Fragen auf einmal. Versuch es in einer Minute nochmal."
+        : "Die Antwort kam nicht durch. Frag es nochmal, oder schau in die Quellen oben.";
+    }).then(function(){ knopf.disabled = false; });
+  });
+}
+
+/* ---------- Speichern in der Cloud, wenn der Betrachter das kann ---------- */
+async function faehigkeiten(){
+  if(!window.claude || typeof window.claude.use !== "function") return;
+  try{
+    dbHandle = await window.claude.use("db");
+    if(dbHandle){
+      const doc = await dbHandle.doc("fortschritt/haupt").get();
+      const fern = doc && doc.exists ? doc.data : null;
+      if(fern && typeof fern.zeit === "number" && fern.zeit > (Z.zeit || 0)){
+        Z = Object.assign({}, LEER, fern);
+        inSpeicher();
+        zeichnen();
+      }else if(Z.zeit){
+        dbHandle.doc("fortschritt/haupt").set(Z).catch(function(){});
+      }
+    }
+  }catch(e){ dbHandle = null; }
+
+  try{
+    sampleHandle = await window.claude.use("sample");
+    if(sampleHandle && ansicht.art === "kapitel"){ lehrerAnbinden(kapVon(ansicht.id)); }
+  }catch(e){ sampleHandle = null; }
+
+  try{
+    downloadsHandle = await window.claude.use("downloads");
+    if(downloadsHandle){
+      const knopf = document.createElement("button");
+      knopf.className = "knopf";
+      knopf.textContent = "Notizen sichern";
+      knopf.addEventListener("click", function(){
+        let text = "# Werkbank Webdesign, Stand " + new Date().toLocaleDateString("de-DE") + "\n\n";
+        text += "Erledigt: " + ALLE.filter(function(k){return istFertig(k.id);}).length + " von " + ALLE.length + " Kapiteln\n\n";
+        ALLE.forEach(function(k){
+          const n = (Z.notizen[k.id] || "").trim();
+          if(!n && !istFertig(k.id)) return;
+          text += "## LF " + k.lfNr + "." + k.kNr + " " + k.t + (istFertig(k.id) ? "  [erledigt]" : "") + "\n";
+          if(n) text += n + "\n";
+          text += "\n";
+        });
+        downloadsHandle.save({filename:"werkbank-webdesign-notizen.md", data:text}).catch(function(){});
+      });
+      document.querySelector(".bandrest").appendChild(knopf);
+    }
+  }catch(e){ downloadsHandle = null; }
+}
+
+/* ---------- Start ---------- */
+(function start(){
+  const gespeichert = ausSpeicher();
+  if(gespeichert) Z = Object.assign({}, LEER, gespeichert);
+  if(Z.letzte && kapVon(Z.letzte) && !istFertig(Z.letzte)) ansicht = {art:"kapitel", id:Z.letzte};
+  zeichnen();
+  faehigkeiten();
+})();
+</script>
