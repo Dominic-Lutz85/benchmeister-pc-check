@@ -63,6 +63,33 @@ Wer hier etwas ergänzt, ergänzt es auch in der Vorschau. Eine
 Übertragung, die im Text nicht auftaucht, bricht das zentrale
 Versprechen des Programms.
 
+## Gespeichert ist es erst, wenn die Datei da ist
+
+Angelegt am 05.09.2026, nachdem ein langes Gespräch über einen
+Budget-Rechner verloren schien. Es war darum gebeten worden, das
+Ergebnis nach Obsidian zu schreiben. Dafür gab es gar keinen Weg: Ein
+Vault liegt auf dem eigenen Rechner, eine Unterhaltung in der Claude-App
+nicht, und ein Connector dorthin war nie eingerichtet.
+
+Ob damals eine falsche Zusage fiel oder nur eine missverstandene, lässt
+sich nicht mehr klären. Genau das ist der Punkt. Deshalb gilt ab jetzt:
+
+**Eine Zusage, etwas sei gespeichert, zählt nicht. Nur die Datei zählt.**
+
+Praktisch heißt das drei Dinge:
+
+- Was festgehalten werden soll, wird als Datei angelegt, mit Pfad und
+  Inhalt zurückgemeldet. "Ich habe es notiert" ist keine Ablage.
+- Was eine Sitzung überleben soll, wird committet und gepusht.
+  Sitzungen enden, Container werden weggeräumt, Git bleibt.
+- Fehlt das Werkzeug für den gewünschten Ablageort, wird das gesagt,
+  **bevor** gearbeitet wird. Lieber "das geht hier nicht" als eine
+  Zusage, die niemand einlösen kann.
+
+Das ist Regel 1 eine Ebene höher. Ein Fehlalarm kostet das Vertrauen in
+alle anderen Befunde; eine erfundene Speicherung kostet das Vertrauen in
+die gesamte Zusammenarbeit.
+
 ## Aufbau
 
 ```
