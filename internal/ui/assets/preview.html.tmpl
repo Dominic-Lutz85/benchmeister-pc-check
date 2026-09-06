@@ -364,26 +364,33 @@
        DER ABSCHNITT STEHT VOR DER ZUSTIMMUNGSFRAGE, nicht dahinter. Wer
        gemessen hat, hat einen Grund mehr, sein Ergebnis sehen zu wollen.
        Umgekehrt waere die Messung ein Nachklapp. */}}
-  {{/* UEBERSCHRIFT GEAENDERT AM 06.09.2026, noch am selben Tag. Zuerst
-       stand hier "Wie gut haelt deine Kuehlung?". Das klingt nach
-       Werbeprospekt, und es ist zu eng: Gemessen wird, was der ganze
-       Rechner unter Last macht, und die Kuehlung ist nur einer der
-       Gruende, warum der Takt faellt. Die Ueberschrift sagt jetzt, was
-       passiert, statt eine Frage zu stellen, die niemand so stellt. */}}
-  <h2>Dein Rechner unter Volllast</h2>
+  {{/* UEBERSCHRIFT, zweimal geaendert am 06.09.2026.
+
+       Zuerst stand hier "Wie gut haelt deine Kuehlung?". Das klang nach
+       Werbeprospekt und war zu eng: Der Takt faellt nicht nur wegen der
+       Kuehlung, sondern auch wegen Power-Limit, Belueftung und Staub.
+
+       Dann "Dein Rechner unter Volllast". Beschreibend, aber umstaendlich
+       fuer etwas, das einen eingefuehrten Namen hat.
+
+       Jetzt schlicht "Stresstest". Das ist das Wort, das die Zielgruppe
+       ohnehin benutzt: Wer in einem Forum fragt, ob seine Kuehlung taugt,
+       bekommt "mach mal einen Stresstest" zur Antwort. Ein eigener
+       Ausdruck fuer eine bekannte Sache kostet nur Verstaendnis. */}}
+  <h2>Stresstest</h2>
 
   <div class="karte" id="messkarte">
     <div id="mess-start">
       <p class="unter" style="margin-bottom:12px">
-        Zwei Minuten Rechenarbeit, und wir schreiben mit, wie viel Takt dein
-        Prozessor dabei hält. Bleibt er oben, ist alles in Ordnung. Fällt er
-        ab, liegt es meistens an Staub im Kühler, alter Wärmeleitpaste oder
-        zu wenig Luft im Gehäuse.
+        Zwei Minuten Volllast auf dem Prozessor, und wir schreiben mit, wie
+        viel Takt er dabei hält. Bleibt er oben, ist alles in Ordnung. Fällt
+        er ab, liegt es meistens an Staub im Kühler, alter Wärmeleitpaste
+        oder zu wenig Luft im Gehäuse.
       </p>
       <div class="haken">
         <input type="checkbox" id="messen-ok">
         <label for="messen-ok">
-          <span class="titel">Zwei Minuten messen</span>
+          <span class="titel">Stresstest starten, zwei Minuten</span>
           <span class="text">
             Ein Kern bleibt frei, damit du weiterarbeiten kannst. Die Last
             ist nicht höher als bei einem anspruchsvollen Spiel, und du
@@ -391,7 +398,7 @@
           </span>
         </label>
       </div>
-      <button id="mess-knopf" disabled>Messung starten</button>
+      <button id="mess-knopf" disabled>Stresstest starten</button>
     </div>
 
     <div id="mess-lauf" hidden>
