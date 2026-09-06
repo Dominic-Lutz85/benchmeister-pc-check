@@ -84,9 +84,16 @@
 <div class="huelle">
 
   <h1>BenchMeister PC-Check</h1>
+  {{/* Die Zusicherung "noch nichts ins Internet gegangen" stand bis zum
+       06.09.2026 hier oben. Sie ist wahr und sie gehoert dazu, aber als
+       zweiter Satz der Seite wirkt sie wie eine Warnung: Wer ueberfliegt,
+       liest "Internet" und ist misstrauisch, bevor er ueberhaupt etwas
+       gesehen hat. Sie steht jetzt unten bei der Entscheidung, fuer die
+       sie gilt, direkt unter dem Knopf. Dort beruhigt sie, statt zu
+       warnen. */}}
   <p class="unter">
-    Das haben wir in deinem Rechner gefunden. Bis hierhin ist noch nichts
-    ins Internet gegangen, alles unten steht nur auf deinem Bildschirm.
+    Das haben wir in deinem Rechner gefunden. Alles hier steht nur auf
+    deinem Bildschirm.
   </p>
 
   <div class="karte">
@@ -295,7 +302,27 @@
   </div>
   {{end}}
 
-  <h2>Möchtest du dein Ergebnis online sehen?</h2>
+  {{/* UEBERSCHRIFT GEAENDERT AM 06.09.2026. Vorher: "Moechtest du dein
+       Ergebnis online sehen?" Das ist eine Bitte um Erlaubnis, und eine
+       Bitte beantwortet man am schnellsten mit nein.
+
+       Die neue Fassung stellt die Frage, die der Besucher ohnehin im Kopf
+       hat, seit er die Messwerte gesehen hat. Beantworten laesst sie sich
+       nur mit dem Vergleich, und dafuer muessen die Angaben eben hoch.
+       Der Unterschied ist nicht Werbung, sondern Reihenfolge: erst wozu,
+       dann was dafuer noetig ist.
+
+       Die Wahl fiel am 06.09.2026 zwischen drei Fassungen, siehe die
+       Erkundung "Laeuft meine Kiste richtig?". Gewaehlt wurde die
+       Rangliste, weil sie den Ehrgeiz anspricht, der Leute ueberhaupt
+       dazu bringt, so ein Programm zu starten. Das Namensfeld dazu fehlt
+       hier noch mit Absicht: Es gibt die Rangliste noch nicht, und ein
+       Eingabefeld ohne etwas dahinter waere eine Attrappe. */}}
+  <h2>Wo steht dein Rechner?</h2>
+  <p class="unter" style="margin-top:-8px">
+    Mit dem Vergleich siehst du, ob dein Exemplar gut läuft oder ob noch
+    etwas geht.
+  </p>
 
   <div class="karte">
     <div class="haken">
@@ -337,15 +364,25 @@
       </label>
     </div>
 
-    <button id="senden" disabled>Ergebnis ansehen</button>
+    <button id="senden" disabled>Vergleichen</button>
+    {{/* Hierher gewandert am 06.09.2026, aus der zweiten Zeile der Seite.
+         Direkt unter dem Knopf steht sie an der Stelle, an der jemand
+         zoegert, und beantwortet genau dessen Frage. Oben beantwortete
+         sie eine Frage, die sich noch niemand gestellt hatte. */}}
+    <p class="unter" style="margin:10px 0 0;font-size:12px">
+      Bis zu diesem Klick ist nichts ins Internet gegangen. Übertragen wird
+      genau das, was oben steht: kein Name, keine Seriennummer, keine
+      Adresse.
+    </p>
     <div id="meldung" class="meldung"></div>
   </div>
 
+  {{/* Gekuerzt am 06.09.2026: Die ersten beiden Saetze standen nach dem
+       Umbau doppelt, einmal hier und einmal direkt unter dem Knopf. Dort
+       gehoeren sie hin, hier bleibt nur, was ueber den Klick hinausgeht. */}}
   <p class="fuss">
-    Ohne Klick auf den Knopf passiert nichts. Du kannst dieses Fenster
-    einfach schließen, dann wurde nie etwas übertragen. Das Programm
-    verändert nichts an deinem System, trägt sich nirgends ein und ist nach
-    dem Schließen wieder weg.
+    Das Programm verändert nichts an deinem System, trägt sich nirgends ein
+    und ist nach dem Schließen wieder weg.
   </p>
 
 </div>
