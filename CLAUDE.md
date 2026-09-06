@@ -7,10 +7,26 @@ ohnehin schon an der richtigen Stelle ist.
 
 ## Worum es bei diesem Programm geht
 
-Ein portables Windows-Werkzeug, das ausliest, was in einem Rechner
-steckt, und auf verschenkte Leistung hinweist. Kein Benchmark, keine
-Last, keine Änderung am System. Es liest nur, was Windows ohnehin
-meldet.
+Ein Windows-Werkzeug, das ausliest, was in einem Rechner steckt, und
+auf verschenkte Leistung hinweist.
+
+**Geändert am 06.09.2026:** Hier stand bis dahin "Kein Benchmark, keine
+Last, keine Änderung am System". Der Satz war zwei Zusagen in einem, und
+nur die zweite ist unverhandelbar. Ohne Last lässt sich nämlich gar
+nicht beantworten, was die Leute wirklich wissen wollen: ob ihr
+Exemplar in Ordnung ist. Zwei Rechner mit derselben Teileliste können
+zwanzig Prozent auseinanderliegen, und das sieht man keiner Teileliste
+an.
+
+Was jetzt gilt:
+
+- **Last ist erlaubt**, aber nur nach ausdrücklicher Zustimmung und
+  innerhalb der fünf Regeln in `internal/last/lasttest.go`. Die
+  wichtigste davon: Der Test darf nicht härter sein als ein
+  anspruchsvolles Spiel.
+- **Änderungen am System bleiben ausgeschlossen.** Kein Übertakten,
+  keine Spannung, keine Lüfterkurve, kein Schreibzugriff. Das ist die
+  Grenze, hinter der aus einer Messung ein Eingriff wird.
 
 Die Zielgruppe sind Leute, die solchen Programmen misstrauen. Das ist
 keine Randnotiz, sondern der Maßstab für jede Entscheidung hier.
