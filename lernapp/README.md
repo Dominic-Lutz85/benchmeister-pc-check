@@ -34,3 +34,19 @@ weiterhin, nur ohne Gedaechtnis.
 
 Datei im Browser oeffnen. Fuer die Schriften ist eine Internetverbindung
 noetig, ohne sie greift die Rueckfallkette.
+
+## Obsidian-Tresor
+
+`obsidian-tresor/` ist derselbe Lehrplan als Markdown-Sammlung: 65
+Kapitelnotizen, 12 Lernfeld-Uebersichten, 6 Projekte, dazu Merksaetze,
+Abnahmeliste, Quellenliste, Vorlagen und eine Sitzungsnotiz.
+
+Erzeugt wird er aus `index.html`:
+
+```bash
+python3 tresor-bauen.py
+```
+
+Der Ordner wird dabei geleert und neu geschrieben. Eigene Notizen in den
+Kapiteldateien gehen verloren, deshalb gehoeren gesammelte Erkenntnisse
+in eigene Dateien.
