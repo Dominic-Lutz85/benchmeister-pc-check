@@ -45,6 +45,11 @@ type ScanResult struct {
 	CPUCores   int    `json:"cpu_cores"`
 	CPUThreads int    `json:"cpu_threads"`
 
+	// Nenntakt in MHz, Bezugsgroesse fuer den Lasttest. Bleibt lokal:
+	// Fuer die Hardware-Statistik sagt er nichts, was der Prozessorname
+	// nicht schon sagt.
+	CPUNenntaktMhz int `json:"-"`
+
 	GPUName string `json:"gpu_name"`
 	// Zeiger, damit "unbekannt" (nil) von "0 GB" unterscheidbar bleibt.
 	// Windows meldet den Grafikspeicher oberhalb von 4 GB notorisch falsch,

@@ -392,6 +392,12 @@ func Anzeigen(ergebnis *scan.ScanResult, zustand scan.SystemzustandInfo, bauform
 		}
 	})
 
+	// Lasttest und Ranglisten-Eintrag, siehe lasttest.go. In einer
+	// eigenen Datei, weil sie einen eigenen Zustand haben (laeuft gerade
+	// etwas?) und dieser hier sonst zwischen den Zustimmungs-Endpunkten
+	// liegen wuerde.
+	registriereLasttest(mux, ergebnis)
+
 	mux.HandleFunc("/consent", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 

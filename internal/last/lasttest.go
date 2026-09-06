@@ -177,6 +177,28 @@ startet nichts von selbst, aber es kann auch nicht pruefen, ob jemand
 zugestimmt hat.
 */
 func Ausfuehren(ctx context.Context, nenntaktMhz int, dauer time.Duration) (*Ergebnis, error) {
+	return AusfuehrenMit(ctx, nenntaktMhz, dauer, nil)
+}
+
+/*
+AusfuehrenMit meldet jeden Messpunkt sofort weiter, statt erst am Ende
+das ganze Ergebnis zu liefern.
+
+ANLASS (06.09.2026): Die Oberflaeche zeigte waehrend der zwei Minuten
+nur Nullen, weil das Ergebnis erst nach dem letzten Messpunkt entsteht.
+Eine Seite, auf der zwei Minuten lang nichts passiert, sieht kaputt aus,
+und genau das sollte der laufende Zustand ja verhindern.
+
+Der Beobachter laeuft im selben Ablauf wie die Messung. Er darf deshalb
+nicht blockieren: Wer hier etwas Langsames tut, verzoegert die naechste
+Messung und verfaelscht damit den Verlauf.
+*/
+func AusfuehrenMit(
+	ctx context.Context,
+	nenntaktMhz int,
+	dauer time.Duration,
+	beobachter func(Messpunkt),
+) (*Ergebnis, error) {
 	if dauer > Hoechstdauer {
 		dauer = Hoechstdauer
 	}
@@ -211,10 +233,14 @@ func Ausfuehren(ctx context.Context, nenntaktMhz int, dauer time.Duration) (*Erg
 			if err != nil {
 				continue
 			}
-			ergebnis.Verlauf = append(ergebnis.Verlauf, Messpunkt{
+			punkt := Messpunkt{
 				Nach: time.Since(beginn).Round(time.Millisecond),
 				Mhz:  mhz,
-			})
+			}
+			ergebnis.Verlauf = append(ergebnis.Verlauf, punkt)
+			if beobachter != nil {
+				beobachter(punkt)
+			}
 		}
 	}
 }

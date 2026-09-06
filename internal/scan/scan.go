@@ -18,6 +18,11 @@ type win32Processor struct {
 	Name                      string
 	NumberOfCores             uint32
 	NumberOfLogicalProcessors uint32
+	// Nenntakt in MHz. Ergaenzt am 06.09.2026 als Bezugsgroesse fuer den
+	// Lasttest: Der Leistungsindikator liefert Prozentwerte, und ein
+	// Prozentwert ohne Bezug ist keine Zahl. NICHT als aktueller Takt
+	// zu gebrauchen, dafuer ist er zu traege, siehe internal/last.
+	MaxClockSpeed uint32
 }
 
 type win32VideoController struct {
@@ -104,7 +109,7 @@ func Auslesen() (*ScanResult, error) {
 
 func prozessor(e *ScanResult) error {
 	var liste []win32Processor
-	q := "select Name, NumberOfCores, NumberOfLogicalProcessors from Win32_Processor"
+	q := "select Name, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed from Win32_Processor"
 	if err := wmi.Query(q, &liste); err != nil {
 		return err
 	}
@@ -119,6 +124,7 @@ func prozessor(e *ScanResult) error {
 	e.CPUName = strings.TrimSpace(p.Name)
 	e.CPUCores = int(p.NumberOfCores)
 	e.CPUThreads = int(p.NumberOfLogicalProcessors)
+	e.CPUNenntaktMhz = int(p.MaxClockSpeed)
 	return nil
 }
 

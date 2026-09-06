@@ -77,6 +77,35 @@
   .meldung { margin-top: 14px; font-size: 14px; }
   .meldung.fehler { color: var(--warn); }
   .meldung.gut { color: var(--ok); }
+
+  /* Lasttest, ergaenzt am 06.09.2026. */
+  .verlauf {
+    height: 46px; display: flex; align-items: flex-end; gap: 2px;
+    margin: 12px 0 8px;
+  }
+  .verlauf i { flex: 1; background: var(--accent); border-radius: 1px 1px 0 0; display: block; min-height: 2px; }
+  .messwerte { display: flex; flex-wrap: wrap; gap: 22px; margin: 10px 0 0; }
+  .messwerte div { min-width: 96px; }
+  .messwerte b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .messwerte span { color: var(--muted); font-size: 12px; }
+  .urteil-gut b, .urteil-gut { color: var(--ok); }
+  .urteil-mittel b, .urteil-mittel { color: var(--warn); }
+  .urteil-schlecht b, .urteil-schlecht { color: var(--warn); }
+  input[type="text"] {
+    width: 100%; padding: 10px 12px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--inset);
+    color: var(--fg); font: inherit; margin-bottom: 10px;
+  }
+  input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .knopfzeile { display: flex; gap: 10px; flex-wrap: wrap; }
+  .still {
+    background: transparent; color: var(--accent);
+    border: 1px solid var(--line);
+  }
+  .schluessel {
+    font-family: ui-monospace, monospace; font-size: 13px; word-break: break-all;
+    background: var(--inset); padding: 10px 12px; border-radius: 8px; margin: 10px 0 0;
+  }
   a { color: var(--accent); }
 </style>
 </head>
@@ -318,10 +347,86 @@
        dazu bringt, so ein Programm zu starten. Das Namensfeld dazu fehlt
        hier noch mit Absicht: Es gibt die Rangliste noch nicht, und ein
        Eingabefeld ohne etwas dahinter waere eine Attrappe. */}}
-  <h2>Wo steht dein Rechner?</h2>
+  {{/* MESSUNG UND RANGLISTE, ergaenzt am 06.09.2026.
+
+       Bis hierher liest dieses Programm nur ab. Damit ist die Frage, die
+       die meisten wirklich haben, gar nicht zu beantworten: Laeuft meine
+       Kiste so wie sie soll, oder habe ich ein Montagsmodell? Zwei
+       Rechner mit derselben Teileliste koennen zwanzig Prozent
+       auseinanderliegen.
+
+       Gemessen wird der gehaltene Takt, nicht die Temperatur. Die
+       Temperatur ist ohne Kernel-Treiber auf den meisten Rechnern gar
+       nicht lesbar, der Takt schon, und er ist die ehrlichere Zahl: Er
+       ist das Ergebnis von Kuehlung, Power-Limit, Belueftung,
+       Waermeleitpaste und Staub zusammen.
+
+       DER ABSCHNITT STEHT VOR DER ZUSTIMMUNGSFRAGE, nicht dahinter. Wer
+       gemessen hat, hat einen Grund mehr, sein Ergebnis sehen zu wollen.
+       Umgekehrt waere die Messung ein Nachklapp. */}}
+  <h2>Wie gut hält deine Kühlung?</h2>
+
+  <div class="karte" id="messkarte">
+    <div id="mess-start">
+      <p class="unter" style="margin-bottom:12px">
+        Wir lassen deinen Prozessor zwei Minuten rechnen und schreiben mit,
+        wie viel Takt er dabei hält. Fällt er ab, liegt es an der Kühlung,
+        am Staub oder an alter Wärmeleitpaste.
+      </p>
+      <div class="haken">
+        <input type="checkbox" id="messen-ok">
+        <label for="messen-ok">
+          <span class="titel">Zwei Minuten messen</span>
+          <span class="text">
+            Ein Kern bleibt frei, damit du weiterarbeiten kannst. Die Last
+            ist nicht höher als bei einem anspruchsvollen Spiel, und du
+            kannst jederzeit abbrechen. Am System wird nichts verändert.
+          </span>
+        </label>
+      </div>
+      <button id="mess-knopf" disabled>Messung starten</button>
+    </div>
+
+    <div id="mess-lauf" hidden>
+      <p class="unter" id="mess-fortschritt">Läuft ...</p>
+      <div class="verlauf" id="mess-verlauf"></div>
+      <div class="knopfzeile">
+        <button class="still" id="mess-abbruch">Abbrechen</button>
+      </div>
+    </div>
+
+    <div id="mess-fertig" hidden>
+      <p class="unter" id="mess-urteil" style="margin-bottom:0"></p>
+      <div class="messwerte">
+        <div><b id="mess-gehalten">–</b><span>gehalten</span></div>
+        <div><b id="mess-dauer">–</b><span>unter Dauerlast</span></div>
+        <div><b id="mess-spitze">–</b><span>Spitze</span></div>
+      </div>
+
+      <div id="eintrag" style="margin-top:18px">
+        <p class="unter" style="margin-bottom:8px">
+          <strong style="color:var(--fg)">Trag dich in die Rangliste ein.</strong>
+          Such dir einen Namen aus, unter dem deine Messung dort steht.
+        </p>
+        <input type="text" id="alias" maxlength="20" placeholder="Dein Name in der Liste"
+               autocomplete="off" spellcheck="false">
+        <div class="knopfzeile">
+          <button id="eintrag-knopf" disabled>Eintragen</button>
+        </div>
+        <p class="unter" style="margin:10px 0 0;font-size:12px">
+          Übertragen werden Name, Prozessor, Grafikkarte, Betriebssystem und
+          die drei Taktwerte von oben. Keine Seriennummer, keine Adresse,
+          kein Rechnername.
+        </p>
+        <div id="eintrag-meldung" class="meldung"></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Dein Ergebnis auf BenchMeister</h2>
   <p class="unter" style="margin-top:-8px">
-    Mit dem Vergleich siehst du, ob dein Exemplar gut läuft oder ob noch
-    etwas geht.
+    Der ausführliche Vergleich mit starken Komplettsystemen, dein Score und
+    Aufrüst-Vorschläge, auf einer Seite unter deinem eigenen Link.
   </p>
 
   <div class="karte">
@@ -505,6 +610,187 @@
   window.addEventListener("pageshow", function (ereignis) {
     if (ereignis.persisted) {
       fetch("/bleibt").catch(function () {});
+    }
+  });
+
+  /* ----------------------------------------------------------------
+     Lasttest und Ranglisten-Eintrag, ergaenzt am 06.09.2026.
+
+     Der Server misst, diese Seite fragt im Sekundentakt nach dem Stand.
+     Ein einziger Aufruf, der zwei Minuten offen bleibt, waere kuerzer
+     und waere falsch: Eine Seite, auf der zwei Minuten nichts passiert,
+     sieht kaputt aus, und abbrechen liesse sich auch nichts.
+     ---------------------------------------------------------------- */
+  const messenOk = document.getElementById("messen-ok");
+  const messKnopf = document.getElementById("mess-knopf");
+  const messStart = document.getElementById("mess-start");
+  const messLauf = document.getElementById("mess-lauf");
+  const messFertig = document.getElementById("mess-fertig");
+  const messFortschritt = document.getElementById("mess-fortschritt");
+  const messVerlauf = document.getElementById("mess-verlauf");
+  const messAbbruch = document.getElementById("mess-abbruch");
+  const messUrteil = document.getElementById("mess-urteil");
+  const alias = document.getElementById("alias");
+  const eintragKnopf = document.getElementById("eintrag-knopf");
+  const eintragMeldung = document.getElementById("eintrag-meldung");
+
+  let taktwerte = [];
+  let takt = null;
+
+  messenOk.addEventListener("change", () => {
+    messKnopf.disabled = !messenOk.checked;
+  });
+
+  /* Der Name braucht drei Zeichen, siehe die Pruefung auf dem Server.
+     Den Knopf vorher zu sperren erspart eine Fehlermeldung fuer etwas,
+     das man auch vorher sehen kann. */
+  alias.addEventListener("input", () => {
+    eintragKnopf.disabled = alias.value.trim().length < 3;
+  });
+
+  function balkenZeichnen() {
+    if (taktwerte.length === 0) return;
+    const hoechster = Math.max(...taktwerte);
+    /* Die Skala beginnt bei 70 Prozent des hoechsten Werts, nicht bei
+       null. Sonst sieht ein Abfall von 4700 auf 3400 MHz aus wie ein
+       Rundungsfehler, und genau dieser Abfall ist der Befund. */
+    const boden = hoechster * 0.7;
+    messVerlauf.innerHTML = taktwerte
+      .map((w) => {
+        const anteil = Math.max(4, ((w - boden) / (hoechster - boden || 1)) * 100);
+        return '<i style="height:' + anteil.toFixed(1) + '%"></i>';
+      })
+      .join("");
+  }
+
+  function fertigZeigen(stand) {
+    clearInterval(takt);
+    messLauf.hidden = true;
+    messFertig.hidden = false;
+
+    if (stand.fehler) {
+      messUrteil.textContent = stand.fehler;
+      document.getElementById("eintrag").hidden = true;
+      return;
+    }
+    if (stand.abgebrochen) {
+      messUrteil.textContent =
+        "Abgebrochen. Eine abgebrochene Messung sagt nichts über Dauerlast aus, deshalb kommt sie nicht in die Rangliste.";
+      document.getElementById("eintrag").hidden = true;
+      return;
+    }
+
+    const prozent = (stand.gehalten * 100);
+    document.getElementById("mess-gehalten").textContent =
+      prozent.toFixed(1).replace(".", ",") + " %";
+    document.getElementById("mess-dauer").textContent = stand.dauer_mhz + " MHz";
+    document.getElementById("mess-spitze").textContent = stand.spitze_mhz + " MHz";
+
+    const saetze = {
+      "stabil": "Deine Kühlung hält den Takt. Da ist nichts zu tun.",
+      "leichter Abfall":
+        "Leichter Abfall unter Dauerlast. Das ist bei vielen Serienkühlern normal.",
+      "drosselt deutlich":
+        "Der Takt fällt deutlich ab. Meistens liegt das an Staub im Kühler, alter Wärmeleitpaste oder zu wenig Luft im Gehäuse.",
+    };
+    messUrteil.textContent = saetze[stand.urteil] || "";
+    messFertig.className =
+      stand.urteil === "stabil" ? "urteil-gut"
+      : stand.urteil === "leichter Abfall" ? "urteil-mittel"
+      : "urteil-schlecht";
+  }
+
+  async function standHolen() {
+    try {
+      const antwort = await fetch("/lasttest/stand");
+      const stand = await antwort.json();
+
+      if (stand.aktuell_mhz > 0) {
+        taktwerte.push(stand.aktuell_mhz);
+        balkenZeichnen();
+      }
+      if (stand.laeuft) {
+        const rest = Math.max(0, stand.gesamt - stand.sekunden);
+        messFortschritt.textContent =
+          "Läuft, noch " + rest + " von " + stand.gesamt + " Sekunden.";
+        return;
+      }
+      if (stand.fertig || stand.fehler) fertigZeigen(stand);
+    } catch (e) {
+      /* Netzwerkfehler zum eigenen Rechner heisst: Das Programm ist weg.
+         Dann hat das Weiterfragen keinen Zweck. */
+      clearInterval(takt);
+    }
+  }
+
+  messKnopf.addEventListener("click", async () => {
+    messKnopf.disabled = true;
+    taktwerte = [];
+    try {
+      const antwort = await fetch("/lasttest/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ zugestimmt: messenOk.checked }),
+      });
+      const stand = await antwort.json();
+      if (stand.fehler) {
+        messFortschritt.textContent = stand.fehler;
+        messStart.hidden = true;
+        messLauf.hidden = false;
+        messAbbruch.hidden = true;
+        return;
+      }
+      messStart.hidden = true;
+      messLauf.hidden = false;
+      messFortschritt.textContent = "Läuft ...";
+      takt = setInterval(standHolen, 1000);
+    } catch (e) {
+      messKnopf.disabled = false;
+      messFortschritt.textContent = "Die Messung ließ sich nicht starten.";
+    }
+  });
+
+  messAbbruch.addEventListener("click", async () => {
+    messAbbruch.disabled = true;
+    await fetch("/lasttest/abbrechen", { method: "POST" });
+    setTimeout(standHolen, 300);
+  });
+
+  eintragKnopf.addEventListener("click", async () => {
+    eintragKnopf.disabled = true;
+    eintragMeldung.className = "meldung";
+    eintragMeldung.textContent = "Wird eingetragen ...";
+    try {
+      const antwort = await fetch("/rangliste/eintragen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ alias: alias.value.trim(), zugestimmt: true }),
+      });
+      const daten = await antwort.json();
+
+      if (daten.fehler) {
+        eintragMeldung.className = "meldung fehler";
+        eintragMeldung.textContent = daten.fehler;
+        eintragKnopf.disabled = false;
+        return;
+      }
+
+      /* Der Loeschschluessel wird EINMAL gezeigt und steht nirgends
+         sonst. Deshalb steht er gross da und nicht in einer Randnotiz:
+         Wer ihn verliert, kommt an seinen Eintrag nicht mehr heran. */
+      eintragMeldung.className = "meldung gut";
+      eintragMeldung.innerHTML =
+        "Eingetragen. Deine Messung steht jetzt auf " +
+        '<a href="https://www.benchmeister.de/rangliste" target="_blank" rel="noopener">benchmeister.de/rangliste</a>.' +
+        '<div class="unter" style="margin-top:10px;font-size:13px">' +
+        "Mit diesem Schlüssel kannst du den Eintrag später löschen. " +
+        "Er steht nirgends sonst, also am besten jetzt sichern:" +
+        '</div><div class="schluessel">' + daten.loeschschluessel + "</div>";
+      alias.disabled = true;
+    } catch (e) {
+      eintragMeldung.className = "meldung fehler";
+      eintragMeldung.textContent = "Der Eintrag ließ sich nicht absenden.";
+      eintragKnopf.disabled = false;
     }
   });
 </script>
