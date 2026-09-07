@@ -1,0 +1,29 @@
+# Zeilenenden auch im Editor auf LF halten.
+#
+# WARUM (07.09.2026): .gitattributes schreibt bereits "eol=lf" vor, das
+# wirkt aber nur beim Auschecken. Speichert ein Editor die Datei danach
+# mit CRLF, faellt das nicht auf: git normalisiert beim Lesen wieder auf
+# LF, "git status" bleibt sauber, und die Datei liegt trotzdem falsch
+# auf der Platte.
+#
+# Bei preview.html.tmpl ist das kein Schoenheitsfehler. Die Datei wandert
+# per go:embed unveraendert in die exe. Nachgemessen am 07.09.2026:
+# derselbe Quelltext, einmal mit LF und einmal mit CRLF gebaut, ergab
+# zwei exe-Dateien mit 7.339.490 abweichenden Bytes, 1024 Byte
+# Groessenunterschied und natuerlich verschiedenen Pruefsummen.
+#
+# Diese exe ist nicht signiert. Das einzige belastbare Gegenargument
+# lautet "bau es selbst und vergleiche die Pruefsumme", und genau das
+# ging damit nicht. TestVorlageHatKeineWagenruecklaeufe faengt den Fall
+# ab, falls hier trotzdem einmal etwas durchrutscht.
+
+root = true
+
+[*]
+end_of_line = lf
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.go]
+indent_style = tab

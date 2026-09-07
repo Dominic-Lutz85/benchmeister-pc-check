@@ -1,0 +1,6 @@
+{
+  "//": "files.eol wirkt ohne Zusatzerweiterung, .editorconfig erst mit der EditorConfig-Erweiterung. Deshalb beides. Begruendung steht in .editorconfig.",
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true
+}
