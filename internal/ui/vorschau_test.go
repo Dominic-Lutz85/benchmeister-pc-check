@@ -53,6 +53,18 @@ func TestVorschauSchreiben(t *testing.T) {
 			Feststellung: "Windows nutzt den Plan „Ausbalanciert“.",
 			Empfehlung:   "Für Spiele auf „Höchstleistung“ umstellen.",
 		},
+		// Ergaenzt am 07.09.2026. Der Kommentar oben verspricht einen
+		// Fall, der alle Zustaende zeigt, die Anmerkung fehlte aber. Sie
+		// ist der einzige Schweregrad, der in DERSELBEN Karte steht wie
+		// die Hinweise, und damit genau der Fall, fuer den es die
+		// Textmarke ueberhaupt gibt.
+		{
+			Schwere:      pruefung.Anmerkung,
+			Titel:        "Verschiedene Speicherriegel gemischt",
+			Feststellung: "Es sind 2 verschiedene Riegeltypen verbaut. Das läuft, ist aber kein Idealzustand.",
+			Empfehlung:   "Nichts tun, solange alles stabil läuft.",
+			Hintergrund:  "Gemischte Riegel sind der häufigste Grund dafür, dass sich das Speicherprofil nicht stabil aktivieren lässt.",
+		},
 	}
 
 	kostenpflichtig := []pruefung.Befund{
@@ -96,6 +108,13 @@ func TestVorschauSchreiben(t *testing.T) {
 		Laufwerke: []LaufwerkZeile{
 			{Beschriftung: "NVMe-SSD, 2 TB (System)"},
 			{Beschriftung: "SATA-SSD, 1 TB"},
+		},
+		// Ebenfalls am 07.09.2026 dazu. Der Kommentar oben nannte die
+		// PCIe-Zeilen, die Daten fehlten aber, und damit sah man den
+		// Aufklapper "Warum hier keine Bewertung steht" nie.
+		Pcie: []PcieZeile{
+			{Beschriftung: "Grafikkarte: PCIe 4.0 x8"},
+			{Beschriftung: "NVMe-SSD (System): PCIe 4.0 x4"},
 		},
 	}
 
