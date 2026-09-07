@@ -7,10 +7,25 @@
 <style>
   :root {
     --bg: #0d0a11; --panel: #16121c; --inset: #191420;
-    --fg: #f4f1f7; --muted: #b3aabd; --faint: #7d7488;
+    /* --faint war bis zum 07.09.2026 #7d7488. Auf dem Kartengrund
+       #16121c ergibt das 4,15:1, WCAG 1.4.3 verlangt bei dieser
+       Schriftgroesse 4,5:1. Der neue Wert kommt auf 5,04:1 und wirkt
+       kaum weniger zurueckhaltend. Betrifft die Tabellenkoepfe, die
+       "nicht zuverlaessig gemeldet"-Stellen und die Fusszeilen. */
+    --fg: #f4f1f7; --muted: #b3aabd; --faint: #8b8296;
     --line: #2b2434; --accent: #ec84f5; --ok: #4ade80; --warn: #fbbf24;
   }
   * { box-sizing: border-box; }
+  /* Fokusrahmen, ergaenzt am 07.09.2026. Es gab hier keinen einzigen,
+     also blieb nur der Standardrahmen des Browsers, und der ist auf
+     diesem dunklen Grund praktisch unsichtbar. Wer die Seite mit der
+     Tabulatortaste bedient, sah nicht, wo er gerade steht (WCAG 2.4.7).
+     :focus-visible statt :focus, damit ein Mausklick auf einen Knopf
+     nicht auch noch einen Rahmen stehen laesst. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
   body {
     margin: 0; padding: 32px 20px 64px;
     background: var(--bg); color: var(--fg);
@@ -28,6 +43,8 @@
   th, td { text-align: left; padding: 8px 0; border-bottom: 1px solid var(--line); }
   th { color: var(--faint); font-weight: 600; font-size: 13px;
        text-transform: uppercase; letter-spacing: .04em; width: 42%; }
+  /* Der Kopf einer mehrzeiligen Gruppe steht oben, nicht mittig. */
+  th[rowspan] { vertical-align: top; }
   tr:last-child th, tr:last-child td { border-bottom: 0; }
   .nichts { color: var(--faint); }
   /* Befunde der Plausibilitaetspruefung. Der farbige Streifen links
@@ -51,7 +68,22 @@
   .mehr summary { cursor: pointer; color: var(--accent); user-select: none; }
   .mehr summary:hover { text-decoration: underline; }
   .mehr[open] summary { margin-bottom: 6px; }
-  .befund .titel { font-weight: 600; margin-bottom: 2px; }
+  /* h3 statt div seit dem 07.09.2026: Vorlesewerkzeuge bauen aus den
+     Ueberschriften ein Sprungverzeichnis. Als div tauchten die Befunde
+     dort nicht auf, man kam nur durch Durchlesen an sie heran. Die
+     Groesse bleibt wie vorher, geaendert hat sich die Bedeutung. */
+  .befund .titel { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+  /* Textmarke am Befund, ergaenzt am 07.09.2026. Bis dahin war der
+     farbige Streifen links der EINZIGE Unterschied zwischen einem
+     Hinweis (kostet Leistung) und einer Anmerkung (nur eingeordnet),
+     und beide stehen in derselben Karte. Wer die Farben nicht
+     unterscheidet, sah zwei gleiche Kaesten (WCAG 1.4.1). Das Wort
+     sagt jetzt dasselbe wie die Farbe. */
+  .befund .marke {
+    margin: 0 0 3px; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+  }
+  .befund.hinweis .marke { color: var(--warn); }
   .befund .rat { color: var(--muted); font-size: 14px; margin-top: 4px; }
   .alles-gut { color: var(--ok); }
   details { margin-top: 12px; }
@@ -127,10 +159,10 @@
 
   <div class="karte">
     <table>
-      <tr><th>Prozessor</th><td>{{.Scan.CPUName}}</td></tr>
-      <tr><th>Kerne / Threads</th><td>{{.Scan.CPUCores}} / {{.Scan.CPUThreads}}</td></tr>
-      <tr><th>Grafikkarte</th><td>{{.Scan.GPUName}}</td></tr>
-      <tr><th>Grafikspeicher</th><td>
+      <tr><th scope="row">Prozessor</th><td>{{.Scan.CPUName}}</td></tr>
+      <tr><th scope="row">Kerne / Threads</th><td>{{.Scan.CPUCores}} / {{.Scan.CPUThreads}}</td></tr>
+      <tr><th scope="row">Grafikkarte</th><td>{{.Scan.GPUName}}</td></tr>
+      <tr><th scope="row">Grafikspeicher</th><td>
         {{if .Scan.GPUVramGb}}{{.Scan.GPUVramGb}} GB{{else}}<span class="nichts">von Windows nicht zuverlässig gemeldet</span>{{end}}
       </td></tr>
       {{/* MT/s, nicht MHz. Hier stand bis zum 29.08.2026 "MHz", und das
@@ -152,7 +184,7 @@
            Nur wenn beide Zahlen bekannt sind. Die Steckplatzzahl kommt
            wie alles hier aus einer Tabelle des Board-Herstellers und
            fehlt bei manchen. */}}
-      <tr><th>Arbeitsspeicher</th><td>
+      <tr><th scope="row">Arbeitsspeicher</th><td>
         {{.Scan.RamTotalGb}} GB{{if .Scan.RamSpeedMhz}}, {{.Scan.RamSpeedMhz}} MT/s{{end}}{{if and .Scan.RamSteckplaetze .Scan.Riegel}}, {{len .Scan.Riegel}} von {{.Scan.RamSteckplaetze}} Steckplätzen belegt{{end}}
       </td></tr>
       {{/* Alle Laufwerke einzeln, nicht nur das groesste. Bis 29.08.2026
@@ -165,13 +197,18 @@
            Die Angaben lagen schon vor, sie wurden nur nicht gezeigt. */}}
       {{if .Laufwerke}}
       {{range $i, $l := .Laufwerke}}
+      {{/* rowspan statt leerer Kopfzellen, geaendert am 07.09.2026.
+           Vorher bekam jede Laufwerkszeile ein <th>, das ab der zweiten
+           leer blieb. Ein Vorlesewerkzeug sagt dazu nur "leer" und
+           nennt danach die Beschriftung ohne jeden Bezug. Ein Kopf
+           ueber die ganze Gruppe ist das, was hier gemeint ist. */}}
       <tr>
-        <th>{{if eq $i 0}}Laufwerke{{end}}</th>
+        {{if eq $i 0}}<th scope="rowgroup" rowspan="{{len $.Laufwerke}}">Laufwerke</th>{{end}}
         <td>{{$l.Beschriftung}}</td>
       </tr>
       {{end}}
       {{else}}
-      <tr><th>Laufwerk</th><td>{{.Scan.StorageType}}, {{.Scan.StorageCapacityGb}} GB</td></tr>
+      <tr><th scope="row">Laufwerk</th><td>{{.Scan.StorageType}}, {{.Scan.StorageCapacityGb}} GB</td></tr>
       {{end}}
       {{/* PCIe-Anbindung, ergaenzt am 01.09.2026 auf den Wunsch von
            "Logos_Atum" im PCGH-Forum: sehen, mit wie vielen Leitungen
@@ -189,13 +226,12 @@
       {{if .Pcie}}
       {{range $i, $p := .Pcie}}
       <tr>
-        <th>{{if eq $i 0}}PCIe-Anbindung{{end}}</th>
+        {{if eq $i 0}}<th scope="rowgroup" rowspan="{{len $.Pcie}}">PCIe-Anbindung</th>{{end}}
         <td>{{$p.Beschriftung}}</td>
       </tr>
       {{end}}
       <tr>
-        <th></th>
-        <td>
+        <td colspan="2">
           <details class="mehr">
             <summary>Warum hier keine Bewertung steht</summary>
             <p>
@@ -234,9 +270,9 @@
         </td>
       </tr>
       {{end}}
-      <tr><th>Auflösung</th><td>{{.Scan.ResolutionWidth}} × {{.Scan.ResolutionHeight}}</td></tr>
+      <tr><th scope="row">Auflösung</th><td>{{.Scan.ResolutionWidth}} × {{.Scan.ResolutionHeight}}</td></tr>
       {{if .Scan.MainboardName}}
-      <tr><th>Mainboard</th><td>{{.Scan.MainboardName}} <span class="nichts">(nur hier, wird nicht übertragen)</span></td></tr>
+      <tr><th scope="row">Mainboard</th><td>{{.Scan.MainboardName}} <span class="nichts">(nur hier, wird nicht übertragen)</span></td></tr>
       {{end}}
     </table>
 
@@ -269,7 +305,12 @@
     </p>
     {{range .Kostenlos}}
     <div class="befund {{if eq .Schwere "hinweis"}}hinweis{{end}}">
-      <div class="titel">{{.Titel}}</div>
+      {{/* Diese Karte ist die einzige mit zwei Schweregraden darin:
+           Hinweise kosten Leistung, Anmerkungen ordnen nur ein. Bis
+           zum 07.09.2026 unterschied sie allein die Farbe des
+           Streifens links. */}}
+      <p class="marke">{{if eq .Schwere "hinweis"}}Kostet Leistung{{else}}Nur zur Einordnung{{end}}</p>
+      <h3 class="titel">{{.Titel}}</h3>
       <div>{{.Feststellung}}</div>
       <div class="rat">{{.Empfehlung}}</div>
       {{if .Hintergrund}}<details class="mehr"><summary>Warum?</summary>{{.Hintergrund}}</details>{{end}}
@@ -288,7 +329,7 @@
     </p>
     {{range .Kostenpflichtig}}
     <div class="befund">
-      <div class="titel">{{.Titel}}</div>
+      <h3 class="titel">{{.Titel}}</h3>
       <div>{{.Feststellung}}</div>
       <div class="rat">{{.Empfehlung}}</div>
       {{if .Hintergrund}}<details class="mehr"><summary>Warum?</summary>{{.Hintergrund}}</details>{{end}}
@@ -308,7 +349,7 @@
     </p>
     {{range .Laeuft}}
     <div class="befund gut">
-      <div class="titel">{{.Titel}}</div>
+      <h3 class="titel">{{.Titel}}</h3>
       <div>{{.Feststellung}}</div>
       <div class="rat">{{.Empfehlung}}</div>
       {{if .Hintergrund}}<details class="mehr"><summary>Warum?</summary>{{.Hintergrund}}</details>{{end}}
@@ -410,7 +451,7 @@
     </div>
 
     <div id="mess-fertig" hidden>
-      <p class="unter" id="mess-urteil" style="margin-bottom:0"></p>
+      <p class="unter" id="mess-urteil" role="status" style="margin-bottom:0"></p>
       <div class="messwerte">
         <div><b id="mess-gehalten">–</b><span>gehalten</span></div>
         <div><b id="mess-dauer">–</b><span>unter Dauerlast</span></div>
@@ -432,7 +473,7 @@
           die drei Taktwerte von oben. Keine Seriennummer, keine Adresse,
           kein Rechnername.
         </p>
-        <div id="eintrag-meldung" class="meldung"></div>
+        <div id="eintrag-meldung" class="meldung" role="status"></div>
       </div>
     </div>
   </div>
@@ -493,7 +534,10 @@
       genau das, was oben steht: kein Name, keine Seriennummer, keine
       Adresse.
     </p>
-    <div id="meldung" class="meldung"></div>
+    {{/* role="status" seit dem 07.09.2026: Der Text hier erscheint erst
+         nach dem Klick. Ohne die Rolle bemerkt ein Vorlesewerkzeug die
+         Aenderung gar nicht, es liest nur, was beim Laden da war. */}}
+    <div id="meldung" class="meldung" role="status"></div>
   </div>
 
   {{/* Gekuerzt am 06.09.2026: Die ersten beiden Saetze standen nach dem
@@ -550,6 +594,10 @@
   senden.addEventListener("click", async () => {
     senden.disabled = true;
     meldung.className = "meldung";
+    /* Die Rolle wird VOR dem Text gesetzt, nicht danach. Vorlesewerkzeuge
+       lesen einen Bereich nur dann vor, wenn er zum Zeitpunkt der
+       Aenderung schon als Meldebereich gilt. */
+    meldung.setAttribute("role", "status");
     meldung.textContent = "Wird übertragen ...";
 
     try {
@@ -574,14 +622,25 @@
       // href-Attribut. Ausnutzbar waere das nur, wenn jemand die Antwort
       // von BenchMeister kontrolliert, aber die saubere Variante kostet
       // zwei Zeilen. Sicherheitsdurchsicht 27.08.2026.
-      meldung.textContent = "Fertig. Dein Ergebnis: ";
+      meldung.textContent = "Fertig. Deine Ergebnisseite öffnet sich gleich: ";
       const verweis = document.createElement("a");
       verweis.href = ergebnis.url;
       verweis.textContent = ergebnis.url;
       meldung.appendChild(verweis);
-      window.location.href = ergebnis.url;
+      /* Der Sprung stand bis zum 07.09.2026 unmittelbar hinter dieser
+         Meldung. Damit war sie zwar da, aber niemand las sie: Der
+         Browser war schon auf der naechsten Seite. Ein Vorlesewerkzeug
+         meldet einen geaenderten Bereich erst nach einer kurzen Pause,
+         also hoerte man sie ueberhaupt nicht.
+
+         Jetzt bekommt der Verweis den Fokus, und der Sprung passiert
+         vier Sekunden spaeter von selbst. Wer nicht warten will,
+         drueckt Eingabe. */
+      verweis.focus();
+      setTimeout(function () { window.location.href = ergebnis.url; }, 4000);
     } catch (fehler) {
       meldung.className = "meldung fehler";
+      meldung.setAttribute("role", "alert");
       meldung.textContent = "Hat nicht geklappt: " + fehler.message;
       senden.disabled = false;
     }
@@ -773,6 +832,7 @@
   eintragKnopf.addEventListener("click", async () => {
     eintragKnopf.disabled = true;
     eintragMeldung.className = "meldung";
+    eintragMeldung.setAttribute("role", "status");
     eintragMeldung.textContent = "Wird eingetragen ...";
     try {
       const antwort = await fetch("/rangliste/eintragen", {
@@ -784,6 +844,7 @@
 
       if (daten.fehler) {
         eintragMeldung.className = "meldung fehler";
+        eintragMeldung.setAttribute("role", "alert");
         eintragMeldung.textContent = daten.fehler;
         eintragKnopf.disabled = false;
         return;
@@ -803,6 +864,7 @@
       alias.disabled = true;
     } catch (e) {
       eintragMeldung.className = "meldung fehler";
+      eintragMeldung.setAttribute("role", "alert");
       eintragMeldung.textContent = "Der Eintrag ließ sich nicht absenden.";
       eintragKnopf.disabled = false;
     }
